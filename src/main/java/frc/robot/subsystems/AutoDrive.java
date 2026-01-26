@@ -11,7 +11,7 @@ public class AutoDrive{
     public static Double sliderAdjust = 1.0;
     public static Boolean isDriving = false, goBehindReef = true;
     public static Double accelFac = 0.0, autoDriveMaxSpeed = 2.0;
-    public static String alliance = "red";
+    public static char alliance = 'R';
     public static Boolean driveToXYA(Double x, Double y, Double angle, Double speed, Double slowDownDist){
         Driver_Controller.SwerveControlSet(true);
         Double odoAngle = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360);
@@ -33,7 +33,7 @@ public class AutoDrive{
         speed *= sliderAdjust;
         speed *= accelMult;
         speed += 0.15; // add a little bit of speed to avoid dead spot
-        speed *= ((alliance == "red")?1:-1); // opposite directions if red vs blue
+        speed *= ((alliance == 'R')?1:-1); // opposite directions if red vs blue
         Double AllowedError = 0.05;
         if (slowDownDist < 0.001)AllowedError = 0.0;
         if (dist > AllowedError){
@@ -50,13 +50,17 @@ public class AutoDrive{
         return driveToXYA(x, y, angle, speed, 2.0);
     }
 
-
+    public static Boolean validSpline = false;
 
     static ArrayList<Double> Xpos = new ArrayList<>();
     static ArrayList<Double> Ypos = new ArrayList<>();
     static int totalPoints, progress;
     static Double maxDist;
-    public static void setSpline(Double startX, Double startY, Double destX, Double destY, Double srcX, Double srcY, Double endX, Double endY, Integer step){
+    public static void setSpline(Double startX, Double startY, Double destX, Double destY, Double endX, Double endY, Double speed, Integer step){
+        Double angle = Math.atan2(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond)+Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());
+        Double dist = Math.sqrt(Math.pow(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, 2) + Math.pow(RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond, 2));
+        Double srcX = dist*Math.cos(angle)*12/speed;
+        Double srcY = dist*Math.sin(angle)*12/speed;
         destX -= startX;
         destY -= startY;
         
@@ -89,6 +93,8 @@ public class AutoDrive{
             srcXpoints[i] = (srcX/step*startScaling[i])+(srcXpoints[i-1]*startScaling[i+1]/startScaling[i]);
             srcYpoints[i] = (srcY/step*startScaling[i])+(srcYpoints[i-1]*startScaling[i+1]/startScaling[i]);
         }
+        destXpoints[step] = destX;
+        destYpoints[step] = destY;
         for (int i = step-1; i >= 1; --i){
             endXpoints[i] = (endX/step*endScaling[i])+(endXpoints[i+1]*endScaling[i-1]/endScaling[i]);
             endYpoints[i] = (endY/step*endScaling[i])+(endYpoints[i+1]*endScaling[i-1]/endScaling[i]);
@@ -101,15 +107,22 @@ public class AutoDrive{
         Ypos.add(step, destY+startY);
         maxDist = 0.0;
         for (int i = 0; i < step; ++i){
-            maxDist = Math.max(maxDist, Math.sqrt(Math.pow(Xpos.get(i)-Xpos.get(i+1), 2)+Math.pow(Ypos.get(i)-Ypos.get(i+1), 2)));
-            System.out.print(Xpos.get(i));
+            //maxDist = Math.max(maxDist, Math.sqrt(Math.pow(Xpos.get(i)-Xpos.get(i+1), 2)+Math.pow(Ypos.get(i)-Ypos.get(i+1), 2)));
+            maxDist = Math.max(maxDist, Math.sqrt(Math.pow(destXpoints[i]-destXpoints[i+1], 2)+Math.pow(destYpoints[i]-destYpoints[i+1], 2)));
+            System.out.println(Math.sqrt(Math.pow(destXpoints[i]-destXpoints[i+1], 2)+Math.pow(destYpoints[i]-destYpoints[i+1], 2)));
+            /*System.out.print(Xpos.get(i));
             System.out.print("       ");
             System.out.print(Ypos.get(i));
-            System.out.println();
+            System.out.println();*/
         }
+        maxDist /= speed;
+        validSpline = true;
     }
 
-    public static Boolean driveSpline(Double speed){
+    public static Double correctionMult = 2.0;
+    public static Boolean driveSpline(){
+        if (!validSpline) return true;
+        Double speed = 1.0;
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
         Double odox = RobotContainer.drivetrain.getState().Pose.getX();
         while (progress < totalPoints - 2){
@@ -117,30 +130,42 @@ public class AutoDrive{
                 ++progress;
             }else break;
         }
-        if (progress < totalPoints - 2){// || (Math.sqrt(Math.pow(odox-Xpos.get(progress+1), 2)+Math.pow(odoy-Ypos.get(progress+1), 2)) < Math.sqrt(Math.pow(Xpos.get(progress)-odox, 2)+Math.pow(Ypos.get(progress)-odoy, 2)))){
-            Driver_Controller.SwerveControlSet(false);
+        //if (progress < totalPoints - 2){// || (Math.sqrt(Math.pow(odox-Xpos.get(progress+1), 2)+Math.pow(odoy-Ypos.get(progress+1), 2)) < Math.sqrt(Math.pow(Xpos.get(progress)-odox, 2)+Math.pow(Ypos.get(progress)-odoy, 2)))){
             Double x = Xpos.get(progress+1), y = Ypos.get(progress+1);
-            Driver_Controller.SwerveControlSet(true);
+            Double pointsDist = Math.sqrt(Math.pow(Xpos.get(progress)-Xpos.get(progress+1), 2)+Math.pow(Ypos.get(progress)-Ypos.get(progress+1), 2));
+            //calculate how far off from the ideal locationit is
+            Double m1 = (Ypos.get(progress)-Ypos.get(progress+1))/(Xpos.get(progress)-Xpos.get(progress+1));
+            Double b1 = Ypos.get(progress)-m1*Xpos.get(progress);
+            Double m2 = -1/m1;
+            Double b2 = y-m2*x;
+            Double idealX = ((b1-b2)/(m2-m1));
+            Double dist = Math.sqrt(Math.pow(x-idealX, 2)+Math.pow((idealX-x)*m2, 2));
             
-            Double driveAngle = Math.atan2(y-Ypos.get(progress), x-Xpos.get(progress));
-            //System.out.println(driveAngle);
+            Double driveAngle = Math.atan2(Ypos.get(progress+1)-Ypos.get(progress)+(correctionMult*Math.sin(Math.atan(m2))*dist/(totalPoints-1)), Xpos.get(progress+1)-Xpos.get(progress)+(correctionMult*Math.cos(Math.atan(m2))*dist/(totalPoints-1)));
             //adjust speed based on the slider
             speed *= sliderAdjust;
-            speed *= Math.sqrt(Math.pow(Xpos.get(progress)-Xpos.get(progress+1), 2)+Math.pow(Ypos.get(progress)-Ypos.get(progress+1), 2))/maxDist;
+            speed *= pointsDist/maxDist;
             speed = Math.max(speed, 0.5);
+            Double maxError = speed*0.2;
             //System.out.println(speed);
-            speed *= ((alliance == "red")?1:-1); // opposite directions if red vs blue
-            Driver_Controller.SwerveCommandXValue = -speed*Math.cos(driveAngle);
-            Driver_Controller.SwerveCommandYValue = -speed*Math.sin(driveAngle);
-            return false;
-        }else{
+            speed *= ((alliance == 'R')?1:-1); // opposite directions if red vs blue
+
+            if (progress < totalPoints - 2 || Math.sqrt(Math.pow(odox-Xpos.get(totalPoints-1), 2)+Math.pow(odoy-Ypos.get(totalPoints-1), 2)) > maxError ){
+                Driver_Controller.SwerveCommandXValue = -speed*Math.cos(driveAngle);
+                Driver_Controller.SwerveCommandYValue = -speed*Math.sin(driveAngle);
+                Driver_Controller.SwerveCommandEncoderValue = Math.toDegrees(driveAngle);
+                Driver_Controller.SwerveControlSet(true);
+                return false;
+            }else{
+                Driver_Controller.SwerveControlSet(false);
+                validSpline = false;
+                return true;
+            }
+        /*}else{
             Driver_Controller.SwerveControlSet(false);
-            driveToXYA(Xpos.get(progress+1), Xpos.get(progress+1), RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble(), 1.0);
+            driveToXYA(Xpos.get(progress+1), Ypos.get(progress+1), RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble(), 1.0);
             return true;
-        }
-    }
-    public static Boolean driveSpline(){
-        return driveSpline(1.0);
+        }*/
     }
     
 }
