@@ -141,9 +141,6 @@ public class RobotContainer {
         return powerCurved * 0.1;
     }
 
-    public static Boolean useJoystick = true;
-    public static Double otherX = 0.0, otherY = 0.0;
-
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
@@ -152,7 +149,7 @@ public class RobotContainer {
             drivetrain.applyRequest(() ->
             drive.withVelocityX(Driver_Controller.SwerveXPassthrough) // Drive forward with negative Y (forward)
                     .withVelocityY(Driver_Controller.SwerveYPassthrough) // Drive left with negative X (left)
-                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier*((Driver_Controller.SwerveCommandControl == true) ? 0.45 : 1)) // Drive counterclockwise with negative X (left)
+                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier)//*((Driver_Controller.SwerveCommandControl == true) ? 0.45 : 1)) // Drive counterclockwise with negative X (left)
             )
         );
 
