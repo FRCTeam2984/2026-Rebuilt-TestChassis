@@ -15,12 +15,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 public class Constants {
-    public static final int armPivot1ID = 14;
-    public static final int armPivot2ID = 0;
-    public static final int rollerMotorID = 16;
-    public static final int armSensor1Port = 1;
-    public static final int armSensor2Port = 2;
-public static boolean canautodrive = false;
+    public static final int servo1ID = 0;
+    public static final int sparkMaxID = 15;
+    public static final int turretSpinID = 17;
+    public static final int intakeID = 18;
+    public static final int backShooterID = 19;
+    public static final int forwardShooterID = 19;
     public static class Vision {
         public static final String kCameraName = "NexiGo_HD_Webcam";
         // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
