@@ -82,6 +82,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+    Turret.calcDist();
     /*if (Driver_Controller.buttonReefAlign() && false){
       if (autoLastPressed){
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
