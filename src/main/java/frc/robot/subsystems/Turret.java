@@ -1,24 +1,34 @@
 package frc.robot.subsystems;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.wpilibj.Servo;
-import frc.robot.Constants;
-import frc.robot.Robot;
-import frc.robot.RobotContainer;
+import frc.robot.*;
 
 
 public class Turret {
-    public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
-    public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, blueTargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}, redTargetY = {2.0173315, 6.05119945, 4.034663};
-    public static Servo servo1 = new Servo(Constants.servo1ID);
+    public static Double maxPower = 0.3/*TODO FIXME*/, maxError = 1.0/*TODO FIXME*/; // max power allowed to send and furthest the turret can be from ideal without sending any power
+    public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
     public static Double turretOffX = 0.1, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
-    //servo1.setAngle(50.0);
+
+    public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
+    public static Servo servo1 = new Servo(Constants.servo1ID);
     public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
     public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
+
+    public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
 
     public static void calcDist(){
         // grab odometry values
@@ -30,22 +40,22 @@ public class Turret {
         if (Robot.alliance == 'B'){// if alliance is blue
             if (odoX < blueTargetX[2]){ // if we are in blue alliance zone
                 destX = blueTargetX[2];
-                destY = blueTargetY[2];
+                destY = TargetY[2];
             }else{ // in neutral zone/red alliance zone
                 destX = blueTargetX[0];
-                destY = blueTargetY[((odoY > blueTargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
+                destY = TargetY[((odoY > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
             }
         }else{ // if alliance is red
             if (odoX > redTargetX[2]){ // if we are in red alliance zone
                 destX = redTargetX[2];
-                destY = redTargetY[2];
+                destY = TargetY[2];
             }else{ // in neutral zone/blue alliance zone
                 destX = redTargetX[0];
-                destY = redTargetY[((odoY > redTargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
+                destY = TargetY[((odoY > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()*1605;
+        Double turretAngle = turretEncoder.getPosition()*1605; //TODO FIXME
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
@@ -53,8 +63,90 @@ public class Turret {
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrX , 2) + Math.pow(turrY, 2)); // pythagorean theorum
-        Double targetAngle = Math.atan2(turrX, turrY)-Math.toDegrees(odoA); 
+        Double targetAngle = Math.atan2(turrX, turrY)-Math.toDegrees(odoA); //TODO FIXME
         Double turretOffset = targetAngle - turretAngle;
-        modTurretOff = 180 - (turretOffset + 180 + 360*106)%360;
+        modTurretOff = 180 - (turretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
+    }
+
+    public static Double spinTurret(){
+        Double power = modTurretOff/20*maxPower; // proportional power to error, at 20 degrees off, it will be going at maxPower
+
+        if (Math.abs(modTurretOff) < maxError){ // if really close to perfect, then no power needed
+            return 0.0;
+        }
+        
+        Double minSpeed = 600.0;//TODO FIXME rpm
+	    if (Math.abs(turretEncoder.getVelocity()) < minSpeed){ // if the motor is slow, make it faster
+            Double speedCompensation = 0.1*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;//TODO FIXME maybe change constants
+            if (modTurretOff < 0.0){
+                power -= speedCompensation;
+            }else{
+                power += speedCompensation;
+            }
+        }
+        power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
+        return power;// TODO FIXME maybe make negative
+    }
+
+    public static Boolean readFiles(){ // function to read the interpolation file
+        try{
+            FileReader fileReader = new FileReader("C:\\Users\\team2984\\Documents\\GitHub\\2026-Rebuilt-TestChassis\\src\\main\\java\\frc\\robot\\cowlInterpolation.txt");
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            String line = null;
+            int curSubarray = -1;
+            while ((line = bufferedReader.readLine()) != null) {
+                switch(line){
+                    case "{": // add a new subarray
+                        ++curSubarray;
+                        ArrayList<Double> newAdd = new ArrayList<>(0);
+                        newAdd.add(-Math.pow(10, 6));
+                        cowlInterpolation.add(newAdd);
+                        break;
+                    case "}":
+                        break;
+                    default:
+                        int size = line.length();
+                        if (line.charAt(size-1) != ','){ // return if the last character is not ,
+                            break;
+                        }
+                        cowlInterpolation.get(curSubarray).add( // add the value to the array
+                            Double.parseDouble(
+                            line.substring(0, size-1)));
+                        break;
+                }
+            }
+            bufferedReader.close();
+            return true;
+        }catch(FileNotFoundException e){
+            System.out.println("uh oh - failed to read from interpolaton file - FileNotFoundException");
+        }catch(IOException e){
+            System.out.println("uh oh - failed to read from interpolaton file - IOException");
+        }
+        return false;
+    }
+
+    public static Double moveCowl(){
+        try{
+            // interpolate
+            Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
+            int i = 0, inputSize = cowlInterpolation.get(0).size();
+            while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
+                lowerInp = cowlInterpolation.get(0).get(i-1);
+                if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
+                    break;
+                }
+            }
+            if (i == inputSize){ // if the value is extreme
+                return -1.0;
+            }
+            Double dist1 = cowlInterpolation.get(0).get(i-1), // corresponding angle outputs to lowerInp and upperInp
+                   dist2 = cowlInterpolation.get(0).get(i);
+            return dist2 -
+                -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from val2 versus val1 is to val2
+                *(dist2-dist1);    //the distance between the outputs of val1 and val2
+        }catch(IndexOutOfBoundsException e){
+            return -1.0; 
+        }
     }
 }
+//fix lines 14, 49, 57, 69, 71, 79 for arbitrary constants

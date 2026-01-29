@@ -12,7 +12,6 @@ import frc.robot.subsystems.AutoDrive;
 import frc.robot.subsystems.Driver_Controller;
 import frc.robot.subsystems.LED;
 import frc.robot.subsystems.Transport;
-import frc.robot.subsystems.Turret;
 import frc.robot.Vision;
 
 public class Robot extends TimedRobot {
@@ -82,7 +81,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    Turret.calcDist();
+    //Turret.calcDist();
     /*if (Driver_Controller.buttonReefAlign() && false){
       if (autoLastPressed){
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
