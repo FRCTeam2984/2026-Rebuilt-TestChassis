@@ -8,10 +8,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.subsystems.AutoDrive;
-import frc.robot.subsystems.Driver_Controller;
-import frc.robot.subsystems.LED;
-import frc.robot.subsystems.Transport;
+import frc.robot.subsystems.*;
 import frc.robot.Vision;
 
 public class Robot extends TimedRobot {
@@ -55,6 +52,7 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
+    Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
   }
 
   @Override
@@ -75,6 +73,7 @@ public class Robot extends TimedRobot {
     }
     m_robotContainer.rotaryCalc(true);
     Driver_Controller.SwerveControlSet(false);
+    Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
   }
 
   static int cnt = 0;

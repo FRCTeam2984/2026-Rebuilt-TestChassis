@@ -4,11 +4,9 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -27,6 +25,8 @@ public class Turret {
     public static Servo servo1 = new Servo(Constants.servo1ID);
     public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
     public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
+    public static TalonFX shooter1 = new TalonFX(Constants.shooterID1),
+                          shooter2 = new TalonFX(Constants.shooterID2);
 
     public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
 
@@ -148,5 +148,38 @@ public class Turret {
             return -1.0; 
         }
     }
+
+    public static Double[] curPower = {0.0, 0.0};
+
+    public static Double[] speedController(){
+        Double desiredSpeed = -1.0;
+        try{
+            // interpolate
+            Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
+            int i = 0, inputSize = cowlInterpolation.get(0).size();
+            while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
+                lowerInp = cowlInterpolation.get(0).get(i-1);
+                if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
+                    break;
+                }
+            }
+            if (i == inputSize){ // if the value is extreme
+                return curPower = new Double[] {0.0, 0.0};
+            }
+            Double speed1 = cowlInterpolation.get(0).get(i-1), // corresponding angle outputs to lowerInp and upperInp
+                   speed2 = cowlInterpolation.get(0).get(i);
+            desiredSpeed = speed2 -
+                -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from speed2 versus speed1 is to speed2
+                *(speed2-speed1);    //the distance between the outputs of speed1 and speed2
+        }catch(IndexOutOfBoundsException e){
+            return curPower = new Double[] {0.0, 0.0};
+        }
+
+        Double velocity = shooter1.getVelocity().getValueAsDouble(); // rotations per second
+        Double accel = shooter1.getAcceleration().getValueAsDouble(); // rotations per second per second
+        
+        
+
+    }
 }
-//fix lines 14, 49, 57, 69, 71, 79 for arbitrary constants
+//fix lines that say TODO FIXME for arbitrary constants
