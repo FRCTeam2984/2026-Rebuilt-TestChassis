@@ -20,6 +20,7 @@ public class Turret {
     public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
     public static Double turretOffX = 0.1, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
+    public static Double spinRatio = 100.0;
 
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
     public static Servo servo1 = new Servo(Constants.servo1ID);
@@ -55,7 +56,7 @@ public class Turret {
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()*1605; //TODO FIXME
+        Double turretAngle = turretEncoder.getPosition()/spinRatio;
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
@@ -177,9 +178,20 @@ public class Turret {
 
         Double velocity = shooter1.getVelocity().getValueAsDouble(); // rotations per second
         Double accel = shooter1.getAcceleration().getValueAsDouble(); // rotations per second per second
-        
-        
 
+        if (accel < (desiredSpeed-velocity)){
+            curPower[0] += (desiredSpeed-velocity)/desiredSpeed/50; // increase/decrease power based on whether it is going to make it to the right speed based on acceleration
+        }
+        curPower[0] = Math.min(1.0, Math.max(0.0, curPower[0]));
+
+        velocity = shooter2.getVelocity().getValueAsDouble();
+        accel = shooter2.getAcceleration().getValueAsDouble();
+
+        if (accel < (desiredSpeed-velocity)){
+            curPower[1] += (desiredSpeed-velocity)/desiredSpeed/50;
+        }
+        curPower[1] = Math.min(1.0, Math.max(0.0, curPower[1]));
+        return curPower;
     }
 }
 //fix lines that say TODO FIXME for arbitrary constants
