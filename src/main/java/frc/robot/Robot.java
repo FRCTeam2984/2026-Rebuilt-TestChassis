@@ -4,6 +4,10 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.DriverStation.MatchType;
+
+import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
+
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,6 +28,7 @@ public class Robot extends TimedRobot {
   }
   @Override
   public void robotInit() {
+    LED.setPattern("rainbow");
     //vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement);
   }
   
@@ -61,7 +66,25 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void autonomousExit() {}
+  public void autonomousExit() {
+    LED.setPattern("rainbow");
+  }
+
+  /*
+  public static Double activeTime(){
+    Double time = DriverStation.getMatchTime();
+    MatchType m_matchType = DriverStation.getMatchType();
+    String gameData = DriverStation.getGameSpecificMessage(); // alliance with first inactive shift
+    switch(gameData){
+      case "B":
+        break;
+      case "R":
+        break;
+      default:
+        
+    }
+  }*/
+
 
   @Override
   public void teleopInit() {
@@ -91,16 +114,23 @@ public class Robot extends TimedRobot {
       AutoDrive.driveSpline();
     }else Driver_Controller.SwerveControlSet(false);
     autoLastPressed = Driver_Controller.buttonReefAlign();
-    Transport.moveMotor();
-    if(Driver_Controller.buttonL2()){
-      //Turret.turretSpin.set(0.1);
-    } else{
-      //Turret.turretSpin.set(0.0);
-    }*/
+    Transport.moveMotor();*/
+    // Double[] power = Turret.speedController();
+    // Turret.shooter1.set(power[0]);
+    // Turret.shooter2.set(-power[1]);
+    // Turret.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
+    if (Driver_Controller.buttonL2()){
+      LED.setPattern('B');
+    }
+    if (Driver_Controller.buttonL3()){
+      LED.setPattern('r');
+    }
   }
 
   @Override
-  public void teleopExit() {}
+  public void teleopExit() {
+    LED.setPattern("rainbow");
+  }
 
   @Override
   public void testInit() {

@@ -2,13 +2,13 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj.SerialPort;
 
 public class LED {
-    public static SerialPort arduino = new SerialPort(9600, SerialPort.Port.kUSB);
+    public static SerialPort arduino = new SerialPort(9600, SerialPort.Port.kUSB1);
 
     public static char curPattern = 'w';
 
     public static void setPattern(char newPattern){
         if (newPattern >= 'A' && newPattern <= 'Z'){ // if is a capital letter
-            newPattern -= 'a'-'A'; // change to lowercase
+            newPattern += 'a'-'A'; // change to lowercase
         }
         if (newPattern >= 'a' && newPattern <= 'z'){ // if is a latter
             if (newPattern == curPattern){ // don't send the same pattern multiple times
