@@ -70,20 +70,34 @@ public class Robot extends TimedRobot {
     LED.setPattern("rainbow");
   }
 
-  /*
-  public static Double activeTime(){
+  public static Integer activeTime(){
     Double time = DriverStation.getMatchTime();
-    MatchType m_matchType = DriverStation.getMatchType();
     String gameData = DriverStation.getGameSpecificMessage(); // alliance with first inactive shift
-    switch(gameData){
-      case "B":
-        break;
-      case "R":
-        break;
-      default:
-        
+    // switch(gameData){
+    //   case "B":
+    //     if((time/30)%2==0){
+
+    //     }
+    //     break;
+    //   case "R":
+    //     break;
+    //   default:
+        if(alliance==gameData.charAt(0)){//if our alliance is the same with first inactive shift
+          if((time/30)%2==0){
+            return(time%30);
+          }else{
+            return(-time%30);
+          }
+     
+        }else{
+          if((time/30)%2==1){
+            return(time%30);
+          }else{
+            return(-time%30);
+          }
+        }
+        return 0;
     }
-  }*/
 
 
   @Override
@@ -115,15 +129,18 @@ public class Robot extends TimedRobot {
     }else Driver_Controller.SwerveControlSet(false);
     autoLastPressed = Driver_Controller.buttonReefAlign();
     Transport.moveMotor();*/
-    // Double[] power = Turret.speedController();
-    // Turret.shooter1.set(power[0]);
-    // Turret.shooter2.set(-power[1]);
-    // Turret.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
-    if (Driver_Controller.buttonL2()){
-      LED.setPattern('B');
-    }
-    if (Driver_Controller.buttonL3()){
-      LED.setPattern('r');
+    if (true){ // change to true to become shooter code
+      Double[] power = Turret.speedController();
+    Turret.shooter1.set(1+0*power[0]);
+    Turret.shooter2.set(-power[1]*0+1);
+    Turret.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
+    }else{
+      if (Driver_Controller.buttonL2())Turret.servo1.setAngle(0);
+      else Turret.servo1.setAngle(180);
+      if (Driver_Controller.buttonL2())Turret.servo2.setAngle(0);
+      else Turret.servo2.setAngle(180);
+      if (Driver_Controller.buttonL2())Turret.servoInverted.setAngle(180);
+      else Turret.servoInverted.setAngle(0);
     }
   }
 

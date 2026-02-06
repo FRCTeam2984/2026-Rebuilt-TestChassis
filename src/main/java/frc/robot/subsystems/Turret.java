@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.util.ArrayList;
 
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -22,16 +23,19 @@ public class Turret {
                          turretOffY = 0.0; // left is positive
     public static Double spinRatio = 100.0;
 
+    public static TalonSRX transportMotor = new TalonSRX(Constants.TransportID);
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
-    public static Servo servo1 = new Servo(Constants.servo1ID);
-    public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
-    public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
+    public static Servo servo1 = new Servo(Constants.servo3ID);
+    public static Servo servo2 = new Servo(Constants.servo2ID);
+    public static Servo servoInverted = new Servo(Constants.servo1ID);
+    //public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
+    //public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
     public static TalonFX shooter1 = new TalonFX(Constants.shooterID1),
                           shooter2 = new TalonFX(Constants.shooterID2);
 
     public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
 
-    public static void calcDist(){
+    /*public static void calcDist(){
         // grab odometry values
         Double odoY = RobotContainer.drivetrain.getState().Pose.getY();
         Double odoX = RobotContainer.drivetrain.getState().Pose.getX();
@@ -148,13 +152,13 @@ public class Turret {
         }catch(IndexOutOfBoundsException e){
             return -1.0; 
         }
-    }
+    }*/
 
     public static Double[] curPower = {0.0, 0.0};
 
     public static Double[] speedController(){
-        Double desiredSpeed = -1.0;
-        try{
+        Double desiredSpeed = 70.0;//-1.0;
+        /*try{
             // interpolate
             Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
             int i = 0, inputSize = cowlInterpolation.get(0).size();
@@ -174,23 +178,40 @@ public class Turret {
                 *(speed2-speed1);    //the distance between the outputs of speed1 and speed2
         }catch(IndexOutOfBoundsException e){
             return curPower = new Double[] {0.0, 0.0};
-        }
+        }*/
+        Boolean close = true;
 
-        Double velocity = shooter1.getVelocity().getValueAsDouble(); // rotations per second
+        Double velocity = Math.abs(shooter1.getVelocity().getValueAsDouble()); // rotations per second
         Double accel = shooter1.getAcceleration().getValueAsDouble(); // rotations per second per second
+        System.out.print(velocity + ",   ");
 
         if (accel < (desiredSpeed-velocity)){
             curPower[0] += (desiredSpeed-velocity)/desiredSpeed/50; // increase/decrease power based on whether it is going to make it to the right speed based on acceleration
         }
         curPower[0] = Math.min(1.0, Math.max(0.0, curPower[0]));
 
-        velocity = shooter2.getVelocity().getValueAsDouble();
+        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.2)
+            close = false;
+
+        velocity = Math.abs(shooter2.getVelocity().getValueAsDouble());
         accel = shooter2.getAcceleration().getValueAsDouble();
+        System.out.println(velocity);
 
         if (accel < (desiredSpeed-velocity)){
             curPower[1] += (desiredSpeed-velocity)/desiredSpeed/50;
         }
         curPower[1] = Math.min(1.0, Math.max(0.0, curPower[1]));
+
+        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.2)
+            close = false;
+        
+        if (close){
+            LED.setPattern('R');
+        }else{
+            LED.setPattern('B');
+        }
+
+        System.out.println(curPower[0] + ", " + curPower[1]);
         return curPower;
     }
 }
