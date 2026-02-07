@@ -2,14 +2,11 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
 
 import frc.robot.Constants;
 
 public class Transport {
-    public static TalonSRX transportMotor = new TalonSRX(Constants.TransportID);
+    public static TalonSRX transportMotor = new TalonSRX(Constants.transportID);
     public static TalonSRX intakeMotor = new TalonSRX(Constants.intakeID);
     //public static RelativeEncoder encoder = neoMotor.getEncoder(); // creating an encoder for the motor called motor
     public static void spinIntake(){
@@ -23,6 +20,7 @@ public class Transport {
     public static void spinTransport(){
         if(Driver_Controller.buttonL4()){//TODO FIXME
             transportMotor.set(TalonSRXControlMode.PercentOutput, 0.1);//TODO FIXME
+            //do smth about reverse eventually
         }
         else{
             transportMotor.set(TalonSRXControlMode.PercentOutput, 0);

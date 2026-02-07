@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.util.ArrayList;
 
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix6.hardware.TalonFX;
+import edu.wpi.first.wpilibj.DigitalInput;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -17,24 +17,26 @@ import frc.robot.*;
 
 
 public class Turret {
-    public static Double maxPower = 0.3/*TODO FIXME*/, maxError = 1.0/*TODO FIXME*/; // max power allowed to send and furthest the turret can be from ideal without sending any power
+    public static DigitalInput resettingSensor = new DigitalInput(Constants.turretSensorPort);
+    public static char encoderStatus = 's'; // at first, we don't know if the encoder is correct
+    public static Double maxPower = 0.5, maxError = 1.0/*TODO FIXME*/; // max power allowed to send and furthest the turret can be from ideal without sending any power
     public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
     public static Double turretOffX = 0.1, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
-    public static Double spinRatio = 100.0;
+    public static Double spinRatio = 160.0;
 
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
     public static Servo servo1 = new Servo(Constants.servo3ID);
     public static Servo servo2 = new Servo(Constants.servo2ID);
     public static Servo servoInverted = new Servo(Constants.servo1ID);
-    //public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
-    //public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
+    public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
+    public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
     public static TalonFX shooter1 = new TalonFX(Constants.shooterID1),
                           shooter2 = new TalonFX(Constants.shooterID2);
 
     public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
 
-    /*public static void calcDist(){
+    public static void calcDist(){
         // grab odometry values
         Double odoY = RobotContainer.drivetrain.getState().Pose.getY();
         Double odoX = RobotContainer.drivetrain.getState().Pose.getX();
@@ -59,7 +61,7 @@ public class Turret {
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()/spinRatio;
+        Double turretAngle = turretEncoder.getPosition()*360/spinRatio;
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
@@ -67,13 +69,13 @@ public class Turret {
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrX , 2) + Math.pow(turrY, 2)); // pythagorean theorum
-        Double targetAngle = Math.atan2(turrX, turrY)-Math.toDegrees(odoA); //TODO FIXME
+        Double targetAngle = Math.toDegrees(Math.atan2(turrX, turrY)+odoA);
         Double turretOffset = targetAngle - turretAngle;
         modTurretOff = 180 - (turretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
     }
 
     public static Double spinTurret(){
-        Double power = modTurretOff/20*maxPower; // proportional power to error, at 20 degrees off, it will be going at maxPower
+        Double power = modTurretOff/20*maxPower; // TODO FIXME proportional power to error, at 20 degrees off, it will be going at maxPower
 
         if (Math.abs(modTurretOff) < maxError){ // if really close to perfect, then no power needed
             return 0.0;
@@ -89,7 +91,38 @@ public class Turret {
             }
         }
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
-        return power;// TODO FIXME maybe make negative
+        return -power;// TODO FIXME maybe make negative
+    }
+    
+    public static void resetEncoder(){
+        Double fastSpeed = 0.1, slowSpeed = -0.1;
+        switch(encoderStatus){
+            case 's': // first state, go fast until we trigger the sensor
+                if (resettingSensor.get()){
+                    encoderStatus = 'p';
+                }
+                turretSpin.set(fastSpeed);
+                break;
+            case 'p': // we triggered the beam break sensor and are waiting to pass it
+                if (resettingSensor.get() == false){
+                    encoderStatus = 'c';
+                    turretSpin.set(slowSpeed);
+                }else{
+                    turretSpin.set(fastSpeed);
+                }
+                break;
+            case 'c': // we are close to the beam break sensor, go slower until we trigger again
+                if (resettingSensor.get()){
+                    turretEncoder.setPosition(0.0);
+                    encoderStatus = 'g'; // we are good
+                    turretSpin.set(0.0);
+                }else{
+                    turretSpin.set(slowSpeed);
+                }
+                break;
+            case 'g':
+                return;
+        }
     }
 
     public static Boolean readFiles(){ // function to read the interpolation file
@@ -143,15 +176,15 @@ public class Turret {
             if (i == inputSize){ // if the value is extreme
                 return -1.0;
             }
-            Double dist1 = cowlInterpolation.get(0).get(i-1), // corresponding angle outputs to lowerInp and upperInp
-                   dist2 = cowlInterpolation.get(0).get(i);
+            Double dist1 = cowlInterpolation.get(1).get(i-1), // corresponding angle outputs to lowerInp and upperInp
+                   dist2 = cowlInterpolation.get(1).get(i);
             return dist2 -
                 -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from val2 versus val1 is to val2
                 *(dist2-dist1);    //the distance between the outputs of val1 and val2
         }catch(IndexOutOfBoundsException e){
             return -1.0; 
         }
-    }*/
+    }
 
     public static Double[] curPower = {0.0, 0.0};
 

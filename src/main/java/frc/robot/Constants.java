@@ -23,7 +23,8 @@ public class Constants {
     public static final int intakeID = 18;
     public static final int shooterID1 = 20;
     public static final int shooterID2 = 19;
-    public static final int TransportID = 21;
+    public static final int transportID = 21;
+    public static final int turretSensorPort = 9;
     public static class Vision {
         public static final String kCameraName = "NexiGo_HD_Webcam";
         // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
