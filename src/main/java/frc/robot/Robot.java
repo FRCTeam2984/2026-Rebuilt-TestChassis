@@ -73,10 +73,10 @@ public class Robot extends TimedRobot {
   public static Integer activeTime(){
     Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
     String gameData = DriverStation.getGameSpecificMessage(); // alliance with first inactive shift
-    if (isAutonomous()){
-      return time+10; // time until transition period ends
-    }
     if(time < 30){ // endgame
+      if (gameData == ""){
+        return time+10; // time until transition period ends
+      }
       return time; // time until match ends
     }
     if(time < 55){ // last alliance shift
@@ -157,9 +157,16 @@ public class Robot extends TimedRobot {
     Transport.moveMotor();*/
     if (true){ // change to true to become shooter code
       Double[] power = Turret.speedController();
-    Turret.shooter1.set(1+0*power[0]);
-    Turret.shooter2.set(-power[1]*0+1);
-    Turret.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
+      Turret.shooter1.set(1+0*power[0]);
+      Turret.shooter2.set(-power[1]*0+1);
+      Transport.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
+    }else{
+      if (Driver_Controller.buttonL2())Turret.servo1.setAngle(0);
+      else Turret.servo1.setAngle(180);
+      if (Driver_Controller.buttonL2())Turret.servo2.setAngle(0);
+      else Turret.servo2.setAngle(180);
+      if (Driver_Controller.buttonL2())Turret.servoInverted.setAngle(180);
+      else Turret.servoInverted.setAngle(0);
     }
   }
 

@@ -23,7 +23,6 @@ public class Turret {
                          turretOffY = 0.0; // left is positive
     public static Double spinRatio = 100.0;
 
-    public static TalonSRX transportMotor = new TalonSRX(Constants.TransportID);
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
     public static Servo servo1 = new Servo(Constants.servo3ID);
     public static Servo servo2 = new Servo(Constants.servo2ID);

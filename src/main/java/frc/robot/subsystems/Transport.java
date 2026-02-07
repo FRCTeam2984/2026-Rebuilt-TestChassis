@@ -8,17 +8,24 @@ import com.revrobotics.spark.SparkMax;
 
 import frc.robot.Constants;
 
-public class Transport {/*
-    //public static SparkMax neoMotor = new SparkMax(Constants.sparkMaxID, MotorType.kBrushless);
+public class Transport {
+    public static TalonSRX transportMotor = new TalonSRX(Constants.TransportID);
     public static TalonSRX intakeMotor = new TalonSRX(Constants.intakeID);
     //public static RelativeEncoder encoder = neoMotor.getEncoder(); // creating an encoder for the motor called motor
-    public static void moveMotor(){
-        if(Driver_Controller.buttonL1()){
-            intakeMotor.set(TalonSRXControlMode.PercentOutput, 0.1);
-            System.out.println("yes");
+    public static void spinIntake(){
+        if(Driver_Controller.buttonL3()){//TODO FIXME
+            intakeMotor.set(TalonSRXControlMode.PercentOutput, 0.1);//TODO FIXME
         }
         else{
             intakeMotor.set(TalonSRXControlMode.PercentOutput, 0);
         }
-    }*/
+    }
+    public static void spinTransport(){
+        if(Driver_Controller.buttonL4()){//TODO FIXME
+            transportMotor.set(TalonSRXControlMode.PercentOutput, 0.1);//TODO FIXME
+        }
+        else{
+            transportMotor.set(TalonSRXControlMode.PercentOutput, 0);
+        }
+    }
 }
