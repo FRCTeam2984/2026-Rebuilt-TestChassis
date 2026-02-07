@@ -71,33 +71,59 @@ public class Robot extends TimedRobot {
   }
 
   public static Integer activeTime(){
-    Double time = DriverStation.getMatchTime();
+    Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
     String gameData = DriverStation.getGameSpecificMessage(); // alliance with first inactive shift
-    // switch(gameData){
-    //   case "B":
-    //     if((time/30)%2==0){
-
-    //     }
-    //     break;
-    //   case "R":
-    //     break;
-    //   default:
-        if(alliance==gameData.charAt(0)){//if our alliance is the same with first inactive shift
-          if((time/30)%2==0){
-            return(time%30);
-          }else{
-            return(-time%30);
-          }
-     
-        }else{
-          if((time/30)%2==1){
-            return(time%30);
-          }else{
-            return(-time%30);
-          }
-        }
-        return 0;
+    if (isAutonomous()){
+      return time+10; // time until transition period ends
     }
+    if(time < 30){ // endgame
+      return time; // time until match ends
+    }
+    if(time < 55){ // last alliance shift
+      if(gameData == ""){
+        return 30-time; // assume it is inactive, time (negative/inactive) until endgame
+      }else if (gameData.charAt(0) == alliance){
+        return time; // time until match ends, because after current alliance shift, it is endgame
+      }else{
+        return 30-time; // time until endgame, is negative/inactive
+      }
+    }
+    if(time < 80){ // third alliance shift
+      if(gameData == ""){
+        return 30-time; // assume it is inactive, time (negative) until endgame
+      }else if (gameData.charAt(0) == alliance){
+        return 55-time; // time until last alliance shift, is negative because is inactive
+      }else{
+        return time-55; // time until last alliance shift because it is active now
+      }
+    }
+    if(time < 105){ // second alliance shift
+      if(gameData == ""){
+        return 30-time;
+      }else if (gameData.charAt(0) == alliance){
+        return time-80;
+      }else{
+        return 80-time;
+      }
+    }
+    if(time < 130){ // first alliance shift
+      if(gameData == ""){
+        return 30-time;
+      }else if (gameData.charAt(0) == alliance){
+        return 105-time;
+      }else{
+        return time-105;
+      }
+    }
+    // transition shift
+    if(gameData == ""){
+      return time-130;
+    }else if (gameData.charAt(0) == alliance){
+      return time-130;
+    }else{
+      return time-105;
+    }
+  }
 
 
   @Override
@@ -134,13 +160,6 @@ public class Robot extends TimedRobot {
     Turret.shooter1.set(1+0*power[0]);
     Turret.shooter2.set(-power[1]*0+1);
     Turret.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
-    }else{
-      if (Driver_Controller.buttonL2())Turret.servo1.setAngle(0);
-      else Turret.servo1.setAngle(180);
-      if (Driver_Controller.buttonL2())Turret.servo2.setAngle(0);
-      else Turret.servo2.setAngle(180);
-      if (Driver_Controller.buttonL2())Turret.servoInverted.setAngle(180);
-      else Turret.servoInverted.setAngle(0);
     }
   }
 
