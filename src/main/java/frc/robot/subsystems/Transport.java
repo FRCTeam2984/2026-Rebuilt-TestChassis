@@ -11,7 +11,7 @@ public class Transport {
     //public static RelativeEncoder encoder = neoMotor.getEncoder(); // creating an encoder for the motor called motor
     public static void spinIntake(){
         if(Driver_Controller.buttonL3()){//TODO FIXME
-            intakeMotor.set(TalonSRXControlMode.PercentOutput, 0.1);//TODO FIXME
+            intakeMotor.set(TalonSRXControlMode.PercentOutput, 0.5);//TODO FIXME
         }
         else{
             intakeMotor.set(TalonSRXControlMode.PercentOutput, 0);
@@ -19,7 +19,7 @@ public class Transport {
     }
     public static void spinTransport(){
         if(Driver_Controller.buttonL4()){//TODO FIXME
-            transportMotor.set(TalonSRXControlMode.PercentOutput, 0.1);//TODO FIXME
+            transportMotor.set(TalonSRXControlMode.PercentOutput, -0.25);//TODO FIXME
             //do smth about reverse eventually
         }
         else{

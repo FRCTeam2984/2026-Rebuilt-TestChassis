@@ -20,7 +20,7 @@ public class Robot extends TimedRobot {
   public static int scoringPos = 0;
   public static boolean autoLastPressed = false;
   private Command m_autonomousCommand;
-  private Vision vision;
+  //private Vision vision;
   public final RobotContainer m_robotContainer;
 
   public Robot() {
@@ -155,19 +155,18 @@ public class Robot extends TimedRobot {
     }else Driver_Controller.SwerveControlSet(false);
     autoLastPressed = Driver_Controller.buttonReefAlign();
     Transport.moveMotor();*/
-    if (true){ // change to true to become shooter code
-      Double[] power = Turret.speedController();
-      Turret.shooter1.set(1+0*power[0]);
-      Turret.shooter2.set(-power[1]*0+1);
-      Transport.transportMotor.set(TalonSRXControlMode.PercentOutput, -0.2);
+    Double[] power = {0.0, 0.0};
+    if (Driver_Controller.buttonL2()){
+      power = Turret.speedController();
     }else{
-      if (Driver_Controller.buttonL2())Turret.servo1.setAngle(0);
-      else Turret.servo1.setAngle(180);
-      if (Driver_Controller.buttonL2())Turret.servo2.setAngle(0);
-      else Turret.servo2.setAngle(180);
-      if (Driver_Controller.buttonL2())Turret.servoInverted.setAngle(180);
-      else Turret.servoInverted.setAngle(0);
+      Turret.curPower[0] = 0.0;
+      Turret.curPower[1] = 0.0;
     }
+    Turret.shooter1.set(power[0]);
+    Turret.shooter2.set(-power[1]);
+    Transport.spinIntake();
+    Transport.spinTransport();
+    //if(Driver_Controller.buttonL2())Turret.resetEncoder();
   }
 
   @Override

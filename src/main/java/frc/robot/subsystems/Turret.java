@@ -26,9 +26,9 @@ public class Turret {
     public static Double spinRatio = 160.0;
 
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
-    public static Servo servo1 = new Servo(Constants.servo3ID);
+    public static Servo servo1 = new Servo(Constants.servo1ID);
     public static Servo servo2 = new Servo(Constants.servo2ID);
-    public static Servo servoInverted = new Servo(Constants.servo1ID);
+    public static Servo servoInverted = new Servo(Constants.servoInvertedID);
     public static SparkMax turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
     public static RelativeEncoder turretEncoder = turretSpin.getEncoder();
     public static TalonFX shooter1 = new TalonFX(Constants.shooterID1),
@@ -75,27 +75,25 @@ public class Turret {
     }
 
     public static Double spinTurret(){
-        Double power = modTurretOff/20*maxPower; // TODO FIXME proportional power to error, at 20 degrees off, it will be going at maxPower
+        Double maxPowDist = 20.0; // TODO FIXME proportional power to error, at 20 degrees off, it will be going at maxPower
+        Double power = modTurretOff/maxPowDist*maxPower;
 
         if (Math.abs(modTurretOff) < maxError){ // if really close to perfect, then no power needed
             return 0.0;
         }
         
         Double minSpeed = 600.0;//TODO FIXME rpm
-	    if (Math.abs(turretEncoder.getVelocity()) < minSpeed){ // if the motor is slow, make it faster
-            Double speedCompensation = 0.1*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;//TODO FIXME maybe change constants
-            if (modTurretOff < 0.0){
-                power -= speedCompensation;
-            }else{
-                power += speedCompensation;
-            }
-        }
+	    //if (Math.abs(turretEncoder.getVelocity()) < minSpeed){ // if the motor is slow, make it faster
+            Double maxAdjust = Math.min(1.0, Math.max(-1.0, modTurretOff/maxPowDist)); // the desired max speed changes based on our distance
+            Double speedCompensation = 0.1*maxAdjust*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;//TODO FIXME maybe change constants
+            power += speedCompensation;
+        //}
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
         return -power;// TODO FIXME maybe make negative
     }
     
     public static void resetEncoder(){
-        Double fastSpeed = 0.1, slowSpeed = -0.1;
+        Double fastSpeed = maxPower, slowSpeed = -0.1;
         switch(encoderStatus){
             case 's': // first state, go fast until we trigger the sensor
                 if (resettingSensor.get()){
