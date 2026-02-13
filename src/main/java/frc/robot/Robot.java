@@ -16,11 +16,12 @@ import frc.robot.subsystems.*;
 import frc.robot.Vision;
 
 public class Robot extends TimedRobot {
+  public static Boolean isTestChassis = false;
   public static char alliance = 'B';
   public static int scoringPos = 0;
   public static boolean autoLastPressed = false;
   private Command m_autonomousCommand;
-  //private Vision vision;
+  private Vision vision;
   public final RobotContainer m_robotContainer;
 
   public Robot() {
@@ -28,8 +29,11 @@ public class Robot extends TimedRobot {
   }
   @Override
   public void robotInit() {
+    LED.assignPort();
     LED.setPattern("rainbow");
-    //vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement);
+    Turret.readFiles();
+    Constants.Vision.readLayout();
+    vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement);
   }
   
   @Override
@@ -37,7 +41,7 @@ public class Robot extends TimedRobot {
     alliance = DriverStation.getAlliance().toString().charAt(9);
     Driver_Controller.SwerveInputPeriodic();
     CommandScheduler.getInstance().run(); 
-    //vision.periodic();
+    vision.periodic();
   }
 
   @Override
@@ -144,17 +148,24 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     //Turret.calcDist();
-    /*if (Driver_Controller.buttonReefAlign() && false){
-      if (autoLastPressed){
+    /*if (Driver_Controller.buttonReefAlign()){
+      if (!autoLastPressed){
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
         Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-        AutoDrive.setSpline(odox, odoy, 8.8, 4.0, 0.0, 0.0, 3.0, 50);
+        AutoDrive.setSpline(odox, odoy, odox+1, odoy, 0.0, 0.0, 1.0, 50);
     
       }
       AutoDrive.driveSpline();
+      //System.out.println(Driver_Controller.SwerveXPassthrough);
+      //System.out.println(Driver_Controller.SwerveYPassthrough);
     }else Driver_Controller.SwerveControlSet(false);
-    autoLastPressed = Driver_Controller.buttonReefAlign();
-    Transport.moveMotor();*/
+    autoLastPressed = Driver_Controller.buttonReefAlign();*/
+    // if (Driver_Controller.buttonL1()){
+    //   Turret.resetEncoder();
+    //   System.out.println(Turret.resettingSensor.get());
+    // }else{
+      Turret.turretSpin.set(0.0);
+    // }
     Double[] power = {0.0, 0.0};
     if (Driver_Controller.buttonL2()){
       power = Turret.speedController();

@@ -19,7 +19,7 @@ public class Transport {
     }
     public static void spinTransport(){
         if(Driver_Controller.buttonL4()){//TODO FIXME
-            transportMotor.set(TalonSRXControlMode.PercentOutput, -0.25);//TODO FIXME
+            transportMotor.set(TalonSRXControlMode.PercentOutput, -0.5);//TODO FIXME
             //do smth about reverse eventually
         }
         else{

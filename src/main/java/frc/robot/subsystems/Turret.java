@@ -187,7 +187,7 @@ public class Turret {
     public static Double[] curPower = {0.0, 0.0};
 
     public static Double[] speedController(){
-        Double desiredSpeed = 70.0;//-1.0;
+        Double desiredSpeed = 80.0;//-1.0;
         /*try{
             // interpolate
             Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
