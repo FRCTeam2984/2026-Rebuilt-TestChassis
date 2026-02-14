@@ -147,7 +147,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    //Turret.calcDist();
+    Turret.calcDist();
     /*if (Driver_Controller.buttonReefAlign()){
       if (!autoLastPressed){
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
@@ -160,12 +160,14 @@ public class Robot extends TimedRobot {
       //System.out.println(Driver_Controller.SwerveYPassthrough);
     }else Driver_Controller.SwerveControlSet(false);
     autoLastPressed = Driver_Controller.buttonReefAlign();*/
-    // if (Driver_Controller.buttonL1()){
-    //   Turret.resetEncoder();
-    //   System.out.println(Turret.resettingSensor.get());
-    // }else{
+    if (Driver_Controller.buttonL1()){
+      Turret.resetEncoder();
+      System.out.println(Turret.resettingSensor.get());
+    }else if (Driver_Controller.buttonScoreAlgae()){
+      Turret.turretSpin.set(Turret.spinTurret());
+    }else{
       Turret.turretSpin.set(0.0);
-    // }
+    }
     Double[] power = {0.0, 0.0};
     if (Driver_Controller.buttonL2()){
       power = Turret.speedController();

@@ -40,7 +40,7 @@ public class Turret {
         // grab odometry values
         Double odoY = RobotContainer.drivetrain.getState().Pose.getY();
         Double odoX = RobotContainer.drivetrain.getState().Pose.getX();
-        Double odoA = Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());
+        Double odoA = Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble();//+RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble());
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
@@ -61,7 +61,7 @@ public class Turret {
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()*360/spinRatio;
+        Double turretAngle = turretEncoder.getPosition()*360/spinRatio-25;
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
@@ -69,7 +69,7 @@ public class Turret {
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrX , 2) + Math.pow(turrY, 2)); // pythagorean theorum
-        Double targetAngle = Math.toDegrees(Math.atan2(turrX, turrY)+odoA);
+        Double targetAngle = -Math.toDegrees(Math.atan2(turrX, turrY)+odoA);
         Double turretOffset = targetAngle - turretAngle;
         modTurretOff = 180 - (turretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
     }
