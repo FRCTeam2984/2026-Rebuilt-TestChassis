@@ -21,9 +21,9 @@ public class Turret {
     public static char encoderStatus = 's'; // at first, we don't know if the encoder is correct
     public static Double maxPower = 0.5, maxError = 1.0/*TODO FIXME*/; // max power allowed to send and furthest the turret can be from ideal without sending any power
     public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
-    public static Double turretOffX = 0.1, // offset of the turret in meters from the center of the robot, forward is positive
+    public static Double turretOffX = 0.25, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
-    public static Double spinRatio = 160.0;
+    public static Double spinRatio = 32.0;
 
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
     public static Servo servo1 = new Servo(Constants.servo1ID);
@@ -36,11 +36,22 @@ public class Turret {
 
     public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
 
+    public static Boolean spinMotorWorking = false;
+    public static void initMotors(){
+        try{
+            turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
+            turretEncoder = turretSpin.getEncoder();
+            spinMotorWorking = true;
+        }catch(Exception e){
+            System.out.println("no transport motor");
+        }
+    }
+
     public static void calcDist(){
         // grab odometry values
         Double odoY = RobotContainer.drivetrain.getState().Pose.getY();
         Double odoX = RobotContainer.drivetrain.getState().Pose.getX();
-        Double odoA = Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble();//+RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble());
+        Double odoA = Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());//+RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble());
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
@@ -61,7 +72,7 @@ public class Turret {
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()*360/spinRatio-25;
+        Double turretAngle = turretEncoder.getPosition()*360/spinRatio+105;
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
@@ -92,40 +103,35 @@ public class Turret {
         return -power;// TODO FIXME maybe make negative
     }
     
-    public static void resetEncoder(){
-        Double fastSpeed = maxPower, slowSpeed = -0.1;
+    public static Double resetEncoder(){
+        Double fastSpeed = 0.5, slowSpeed = -0.02;
         switch(encoderStatus){
             case 's': // first state, go fast until we trigger the sensor
                 if (resettingSensor.get()){
                     encoderStatus = 'p';
                 }
-                turretSpin.set(fastSpeed);
-                break;
+                return fastSpeed;
             case 'p': // we triggered the beam break sensor and are waiting to pass it
                 if (resettingSensor.get() == false){
                     encoderStatus = 'c';
-                    turretSpin.set(slowSpeed);
-                }else{
-                    turretSpin.set(fastSpeed);
+                    return slowSpeed;
                 }
-                break;
+                return fastSpeed;
             case 'c': // we are close to the beam break sensor, go slower until we trigger again
                 if (resettingSensor.get()){
                     turretEncoder.setPosition(0.0);
                     encoderStatus = 'g'; // we are good
-                    turretSpin.set(0.0);
-                }else{
-                    turretSpin.set(slowSpeed);
+                    return 0.0;
                 }
-                break;
-            case 'g':
-                return;
+                return slowSpeed;
+            default:
+                return 0.0;
         }
     }
 
     public static Boolean readFiles(){ // function to read the interpolation file
         try{
-            FileReader fileReader = new FileReader("C:\\Users\\team2984\\Documents\\GitHub\\2026-Rebuilt-TestChassis\\src\\main\\java\\frc\\robot\\cowlInterpolation.txt");
+            FileReader fileReader = new FileReader("/home/admin/cowlInterpolation.txt");
             BufferedReader bufferedReader = new BufferedReader(fileReader);
             String line = null;
             int curSubarray = -1;
@@ -138,6 +144,12 @@ public class Turret {
                         cowlInterpolation.add(newAdd);
                         break;
                     case "}":
+                        if (curSubarray == 0){
+                            cowlInterpolation.get(curSubarray).add(99999.0);
+                        }else{
+                            cowlInterpolation.get(curSubarray).add( // add the value to the array
+                                cowlInterpolation.get(curSubarray).get(cowlInterpolation.get(curSubarray).size()-1));
+                        }
                         break;
                     default:
                         int size = line.length();
@@ -177,7 +189,7 @@ public class Turret {
             Double dist1 = cowlInterpolation.get(1).get(i-1), // corresponding angle outputs to lowerInp and upperInp
                    dist2 = cowlInterpolation.get(1).get(i);
             return dist2 -
-                -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from val2 versus val1 is to val2
+                (upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from val2 versus val1 is to val2
                 *(dist2-dist1);    //the distance between the outputs of val1 and val2
         }catch(IndexOutOfBoundsException e){
             return -1.0; 
@@ -187,33 +199,37 @@ public class Turret {
     public static Double[] curPower = {0.0, 0.0};
 
     public static Double[] speedController(){
-        Double desiredSpeed = 80.0;//-1.0;
-        /*try{
-            // interpolate
-            Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
-            int i = 0, inputSize = cowlInterpolation.get(0).size();
-            while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
-                lowerInp = cowlInterpolation.get(0).get(i-1);
-                if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
-                    break;
-                }
-            }
-            if (i == inputSize){ // if the value is extreme
-                return curPower = new Double[] {0.0, 0.0};
-            }
-            Double speed1 = cowlInterpolation.get(0).get(i-1), // corresponding angle outputs to lowerInp and upperInp
-                   speed2 = cowlInterpolation.get(0).get(i);
-            desiredSpeed = speed2 -
-                -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from speed2 versus speed1 is to speed2
-                *(speed2-speed1);    //the distance between the outputs of speed1 and speed2
-        }catch(IndexOutOfBoundsException e){
-            return curPower = new Double[] {0.0, 0.0};
-        }*/
+        Double desiredSpeed = Robot.desiredSpeed;//-1.0;
+        // try{
+        //     // interpolate
+        //     Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
+        //     int i = 0, inputSize = cowlInterpolation.get(0).size();
+        //     while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
+        //         lowerInp = cowlInterpolation.get(0).get(i-1);
+        //         System.out.println(lowerInp);
+        //         System.out.println(cowlInterpolation.get(2).get(i-1));
+        //         if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
+        //             break;
+        //         }
+        //     }
+        //     if (i == inputSize){ // if the value is extreme
+        //         return curPower = new Double[] {0.0, 0.0};
+        //     }
+        //     Double speed1 = cowlInterpolation.get(2).get(i-1), // corresponding angle outputs to lowerInp and upperInp
+        //            speed2 = cowlInterpolation.get(2).get(i);
+        //     desiredSpeed = speed2 -
+        //         -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from speed2 versus speed1 is to speed2
+        //         *(speed2-speed1);    //the distance between the outputs of speed1 and speed2
+        // }catch(IndexOutOfBoundsException e){
+        //     return curPower = new Double[] {0.0, 0.0};
+        // }
+        // return new Double[] {desiredSpeed};
+        
         Boolean close = true;
 
         Double velocity = Math.abs(shooter1.getVelocity().getValueAsDouble()); // rotations per second
         Double accel = shooter1.getAcceleration().getValueAsDouble(); // rotations per second per second
-        System.out.print(velocity + ",   ");
+        //System.out.print(velocity + ",   ");
 
         if (accel < (desiredSpeed-velocity)){
             curPower[0] += (desiredSpeed-velocity)/desiredSpeed/50; // increase/decrease power based on whether it is going to make it to the right speed based on acceleration
@@ -224,8 +240,9 @@ public class Turret {
             close = false;
 
         velocity = Math.abs(shooter2.getVelocity().getValueAsDouble());
+        Double velo1 = velocity;
         accel = shooter2.getAcceleration().getValueAsDouble();
-        System.out.println(velocity);
+        //System.out.println(velocity);
 
         if (accel < (desiredSpeed-velocity)){
             curPower[1] += (desiredSpeed-velocity)/desiredSpeed/50;
@@ -241,7 +258,9 @@ public class Turret {
             LED.setPattern('B');
         }
 
-        System.out.println(curPower[0] + ", " + curPower[1]);
+        //System.out.println((velo1+velocity)/2+",  ");
+
+        //System.out.println(curPower[0] + ", " + curPower[1]);
         return curPower;
     }
 }
