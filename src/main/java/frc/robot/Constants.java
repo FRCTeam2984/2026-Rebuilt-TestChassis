@@ -31,7 +31,7 @@ public class Constants {
         public static final String kCameraName = "NexiGo_HD_Webcam";
         // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
         public static final Transform3d kRobotToCam =
-                new Transform3d(new Translation3d(-0.5, 0.0, -0.5), new Rotation3d(0, 0, 0));
+                new Transform3d(new Translation3d(0.33, 0.0, 0.0), new Rotation3d(0, 0, 0));
 
         public static AprilTagFieldLayout kTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
@@ -39,7 +39,6 @@ public class Constants {
         public static void readLayout(){
             try{
             kTagLayout = new AprilTagFieldLayout("/home/admin/2026-rebuilt-welded.json");
-            System.out.println("YES\nYES\nYES\nYES\n");
             }catch(IOException e){
                 e.printStackTrace();
             }

@@ -41,7 +41,7 @@ public class RobotContainer {
     private static double rotaryOffset = 0;
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+            .withDeadband(MaxSpeed * 0.1/5).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
@@ -95,6 +95,7 @@ public class RobotContainer {
 
     public double rotaryCalc(Boolean resetToRobot){
         double pigeonYaw = drivetrain.getPigeon2().getYaw().getValueAsDouble();
+        //pigeonYaw = ((drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360);
         double rotaryJoystickInput;    //Define the variable rotaryJoystickInput as a double
 
         if (Driver_Controller.SwerveCommandControl) {
@@ -149,7 +150,7 @@ public class RobotContainer {
             drivetrain.applyRequest(() ->
             drive.withVelocityX(Driver_Controller.SwerveXPassthrough) // Drive forward with negative Y (forward)
                     .withVelocityY(Driver_Controller.SwerveYPassthrough) // Drive left with negative X (left)
-                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier)//*((Driver_Controller.SwerveCommandControl == true) ? 0.45 : 1)) // Drive counterclockwise with negative X (left)
+                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier*((Driver_Controller.SwerveCommandControl == true) ? 0.45 : 1)) // Drive counterclockwise with negative X (left)
             )
         );
 
