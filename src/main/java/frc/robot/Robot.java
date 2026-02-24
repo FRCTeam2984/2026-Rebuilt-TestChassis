@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.DriverStation.MatchType;
+import edu.wpi.first.wpilibj.Servo;
 
 import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
 
@@ -32,6 +33,8 @@ public class Robot extends TimedRobot {
     LED.assignPort();
     LED.setPattern("rainbow");
     Turret.readFiles();
+    Transport.initMotors();
+    Turret.initMotors();
     Constants.Vision.readLayout();
     vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement);
   }
@@ -144,27 +147,93 @@ public class Robot extends TimedRobot {
   }
 
   static int cnt = 0;
+  public static int autoState;
+  Double angle = 45.0;
+  public static Double[] destPoints = {0.0, 0.0, 0.0}; // x1, x2, y
+
+  public static void determinePoints(){
+    Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
+        Double odox = RobotContainer.drivetrain.getState().Pose.getX();
+    if (odoy > 4.034663){
+      destPoints[2] = (4.034663+7.4247756)/2;
+    }else{
+      destPoints[2] = ((4.034663*3)-7.4247756)/2;
+    }
+    if (odox > (11.915394+4.62534)/2){
+      destPoints[0] = 11.915394;
+      if (odox > 11.915394){
+        destPoints[1] = 11.915394-2;
+      }else{
+        destPoints[1] = 11.915394+2;
+      }
+    }else{
+      destPoints[0] = 4.62534;
+      if (odox > 4.62534){
+        destPoints[1] = 4.62534-2;
+      }else{
+        destPoints[1] = 4.62534+2;
+      }
+    }
+  }
+
+  public static Double desiredSpeed = 50.0, cowlAngle = 0.5;
+  public static Servo servo1 = new Servo(2);
+
+  static Double[] curUpperSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  static Double[] curLowerSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  static int curIndexUpper = 0, curIndexLower = 0;
 
   @Override
   public void teleopPeriodic() {
+    Double transportPower, intakePower;
+    // if (Driver_Controller.buttonReefAlign()){
+    //   if (!autoLastPressed){
+    //     determinePoints();
+    //     angle = 1.0*Math.round(RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()/90)*90+55;
+    //     autoState = 0;
+    //     Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
+    //     Double odox = RobotContainer.drivetrain.getState().Pose.getX();
+    //     AutoDrive.setSpline(odox, odoy, destPoints[0], destPoints[2], destPoints[0]-destPoints[1], 0.0, 2.5, 50);
+    //     System.out.println(destPoints[0]+"  "+destPoints[1]+"  "+destPoints[2]);
+    //   }
+
+    //   if (AutoDrive.driveSpline(angle)){
+
+    //     if (autoState == 0){
+    //       Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
+    //       Double odox = RobotContainer.drivetrain.getState().Pose.getX();
+    //       Driver_Controller.SwerveControlSet(true);
+    //       AutoDrive.setSpline(odox, odoy, destPoints[1], destPoints[2], 0.0, 0.0, 2.5, 50);
+    //       ++autoState;
+    //     }else if (autoState == 1){
+    //       ++autoState;
+    //       Driver_Controller.SwerveControlSet(false);
+    //     }else{
+    //       Driver_Controller.SwerveControlSet(false);
+    //     }
+    //   }
+    // }else Driver_Controller.SwerveControlSet(false);
+
+    curUpperSlider[curIndexUpper] = Driver_Controller.upperDriverSlider();
+    curLowerSlider[curIndexLower] = Driver_Controller.lowerDriverSlider();
+    Double lowerDriverSlider = 0.0, upperDriverSlider = 0.0;
+    for (int i = 0; i < 10; ++i){
+      lowerDriverSlider += curLowerSlider[i]/10;
+      upperDriverSlider += curUpperSlider[i]/10;
+    }
+    curIndexLower = (curIndexLower+1)%10;
+    curIndexUpper = (curIndexUpper+1)%10;
+
+    desiredSpeed = 45+lowerDriverSlider*35;
+    cowlAngle = 0.5+upperDriverSlider*0.5;
+    //System.out.println(desiredSpeed + ",  " + cowlAngle);
     Turret.calcDist();
-    /*if (Driver_Controller.buttonReefAlign()){
-      if (!autoLastPressed){
-        Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
-        Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-        AutoDrive.setSpline(odox, odoy, odox+1, odoy, 0.0, 0.0, 1.0, 50);
-    
-      }
-      AutoDrive.driveSpline();
-      //System.out.println(Driver_Controller.SwerveXPassthrough);
-      //System.out.println(Driver_Controller.SwerveYPassthrough);
-    }else Driver_Controller.SwerveControlSet(false);
-    autoLastPressed = Driver_Controller.buttonReefAlign();*/
+    //autoLastPressed = Driver_Controller.buttonReefAlign();
     if (Driver_Controller.buttonL1()){
-      Turret.resetEncoder();
-      System.out.println(Turret.resettingSensor.get());
+      Turret.turretSpin.set(Turret.resetEncoder());
     }else if (Driver_Controller.buttonScoreAlgae()){
-      Turret.turretSpin.set(Turret.spinTurret());
+      Turret.turretSpin.set(Turret.spinTurret()/2);
+      Turret.encoderStatus = 's';
     }else{
       Turret.turretSpin.set(0.0);
     }
@@ -175,11 +244,18 @@ public class Robot extends TimedRobot {
       Turret.curPower[0] = 0.0;
       Turret.curPower[1] = 0.0;
     }
+    Turret.servo1.set(cowlAngle);
+    Turret.servo2.set(cowlAngle);
+    Turret.servoInverted.set(1-cowlAngle);
+
     Turret.shooter1.set(power[0]);
     Turret.shooter2.set(-power[1]);
-    Transport.spinIntake();
-    Transport.spinTransport();
-    //if(Driver_Controller.buttonL2())Turret.resetEncoder();
+
+    intakePower = Transport.spinIntake();
+    transportPower = Transport.spinTransport();
+
+    Transport.setIntake(intakePower);
+    Transport.setTransport(transportPower);
   }
 
   @Override
