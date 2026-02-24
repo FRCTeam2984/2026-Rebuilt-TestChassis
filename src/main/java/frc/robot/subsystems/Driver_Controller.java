@@ -229,21 +229,28 @@ public double[] betterJoystickCurve(double x, double y) {
     return returnValue;
 }
 
+public static Double pigeonOffset = 0.0;
+
 public static void SwerveControlSet(boolean command){
+    if ((SwerveCommandControl == false) && command == true){
+        pigeonOffset = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180-RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble();
+    }
     SwerveCommandControl = command;
     SwerveInputPeriodic();
 }
 public static void SwerveInputPeriodic(){
     if (SwerveCommandControl){ // Command Mode
-        SwerveEncoderPassthrough = SwerveCommandEncoderValue;
+        SwerveEncoderPassthrough = SwerveCommandEncoderValue-pigeonOffset;
         SwerveXPassthrough = SwerveCommandXValue;
         SwerveYPassthrough = SwerveCommandYValue;
     }
     else{ //Controller Mode
-        Double sliderMult = Driver_Controller.upperDriverSlider()*0.45+0.55;
-        SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
+        Double sliderMult = 1.0;//Driver_Controller.upperDriverSlider()*0.45+0.55;
+        //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
         SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX(), m_Controller0.getLeftY())[0]*sliderMult;
         SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX(), m_Controller0.getLeftY())[1]*sliderMult;
+        SwerveEncoderPassthrough = Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough));
+        //System.out.println(Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough)));
         //SwerveXPassthrough = -m_Controller0.getLeftY();
         //SwerveYPassthrough = -m_Controller0.getLeftX();
     }
