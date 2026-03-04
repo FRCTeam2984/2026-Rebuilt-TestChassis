@@ -5,6 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.ejml.dense.row.decompose.UtilDecompositons_CDRM;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -21,9 +24,10 @@ public class Turret {
     public static char encoderStatus = 's'; // at first, we don't know if the encoder is correct
     public static Double maxPower = 0.5, maxError = 1.0/*TODO FIXME*/; // max power allowed to send and furthest the turret can be from ideal without sending any power
     public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
-    public static Double turretOffX = 0.25, // offset of the turret in meters from the center of the robot, forward is positive
+    public static Double turretOffX = 0.23, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
     public static Double spinRatio = 32.0;
+    public static Double turret_zero = 0.0;
 
     public static Double distance = 0.0, modTurretOff = 0.0; // current distance from the target point, error in target angle
     public static Servo servo1 = new Servo(Constants.servo1ID);
@@ -34,7 +38,7 @@ public class Turret {
     public static TalonFX shooter1 = new TalonFX(Constants.shooterID1),
                           shooter2 = new TalonFX(Constants.shooterID2);
 
-    public static ArrayList<ArrayList<Double>> cowlInterpolation = new ArrayList<>(0);
+    public static ArrayList<ArrayList<Double[]>> cowlInterpolation = new ArrayList<>(0);
 
     public static Boolean spinMotorWorking = false;
     public static void initMotors(){
@@ -47,11 +51,21 @@ public class Turret {
         }
     }
 
+    public static Double desiredSpeed = 0.0, cowlAngle = 0.5, interpolatedTurretOffset = 0.0, targetAngle = 0.0;
     public static void calcDist(){
         // grab odometry values
-        Double odoY = RobotContainer.drivetrain.getState().Pose.getY();
-        Double odoX = RobotContainer.drivetrain.getState().Pose.getX();
-        Double odoA = Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());//+RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble());
+        Double angle = Math.atan2(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond,
+            RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond)+
+            Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());
+        Double magnitude = Math.sqrt(Math.pow(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, 2)
+            +Math.pow(RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond, 2));
+        Double xVelo = -magnitude*Math.sin(angle)*0.5;// 1/2 second travel time
+        Double yVelo = -magnitude*Math.cos(angle)*0.5;
+        //System.out.printf("xVelo = %.3f, yVelo = %.3f\n", xVelo, yVelo);
+
+        Double odoY = RobotContainer.drivetrain.getState().Pose.getY()+yVelo;
+        Double odoX = RobotContainer.drivetrain.getState().Pose.getX()+xVelo;
+        Double odoA = Math.toRadians(((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)+RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()/10);
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
@@ -72,16 +86,48 @@ public class Turret {
             }
         }
         
-        Double turretAngle = turretEncoder.getPosition()*360/spinRatio+105;
+        Double turretAngle = (turretEncoder.getPosition()-turret_zero)*360/spinRatio-5;
         Double turrX, turrY; // variables that represent position of the TURRET relative to the target location
+        //turretAngle += Driver_Controller.offsetSlider();
 
         turrX = odoX + turretOffX*Math.cos(odoA) - turretOffY*Math.sin(odoA) - destX;
         turrY = odoY + turretOffX*Math.sin(odoA) + turretOffY*Math.cos(odoA) - destY;
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrX , 2) + Math.pow(turrY, 2)); // pythagorean theorum
-        Double targetAngle = -Math.toDegrees(Math.atan2(turrX, turrY)+odoA);
+        targetAngle = (15380*360-Math.toDegrees(Math.atan2(turrX, turrY)+odoA)-180)%360-180;
         Double turretOffset = targetAngle - turretAngle;
+
+        distance += 0.5;
+
+        // interpolate for the speed, cowl angle, and turret offset
+        ArrayList<Double[]> upper, lower;
+        int currentUpper = -1;
+        while ((upper = cowlInterpolation.get(++currentUpper)).get(0)[0] < targetAngle){}
+        lower = cowlInterpolation.get(Math.max(0, currentUpper-1));
+
+        Double[] Ldist1, Udist1;
+        currentUpper = 1;
+        while (upper.get(currentUpper)[0] < distance){currentUpper++;}
+        Udist1 = lower.get(currentUpper);
+        Ldist1 = upper.get(Math.max(1, currentUpper-1));
+
+        Double[] Ldist2, Udist2;
+        currentUpper = 1;
+        while (lower.get(currentUpper)[0] < distance){currentUpper++;}
+        Udist2 = lower.get(currentUpper);
+        Ldist2 = lower.get(Math.max(1, currentUpper-1));
+
+        Double[] interpolated = new Double[3];
+        for (int i = 1; i <= 3; ++i){
+            Double temp1 = Udist1[i] - (Udist1[0]-distance)/(Udist1[0]-Ldist1[0])*(Udist1[i]-Ldist1[i]);
+            Double temp2 = Udist2[i] - (Udist2[0]-distance)/(Udist2[0]-Ldist2[0])*(Udist2[i]-Ldist2[i]);
+            interpolated[i-1] = temp2 - (upper.get(0)[0]-targetAngle)/(upper.get(0)[0]-lower.get(0)[0])*(temp2-temp1);
+        }
+        if (!Driver_Controller.manualSwitch())interpolatedTurretOffset = interpolated[2];
+        desiredSpeed = interpolated[1];
+        cowlAngle = interpolated[0];
+
         modTurretOff = 180 - (turretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
     }
 
@@ -100,26 +146,27 @@ public class Turret {
             power += speedCompensation;
         //}
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
-        return -power;// TODO FIXME maybe make negative
+        return -power/4;// TODO FIXME maybe make negative
     }
     
     public static Double resetEncoder(){
-        Double fastSpeed = 0.5, slowSpeed = -0.02;
+        Double fastSpeed = 0.5, slowSpeed = -0.05;
         switch(encoderStatus){
             case 's': // first state, go fast until we trigger the sensor
-                if (resettingSensor.get()){
+                if (!resettingSensor.get()){
                     encoderStatus = 'p';
                 }
                 return fastSpeed;
             case 'p': // we triggered the beam break sensor and are waiting to pass it
-                if (resettingSensor.get() == false){
+                if (!resettingSensor.get() == false){
                     encoderStatus = 'c';
                     return slowSpeed;
                 }
                 return fastSpeed;
             case 'c': // we are close to the beam break sensor, go slower until we trigger again
-                if (resettingSensor.get()){
+                if (!resettingSensor.get()){
                     turretEncoder.setPosition(0.0);
+                    turret_zero = turretEncoder.getPosition();
                     encoderStatus = 'g'; // we are good
                     return 0.0;
                 }
@@ -135,30 +182,41 @@ public class Turret {
             BufferedReader bufferedReader = new BufferedReader(fileReader);
             String line = null;
             int curSubarray = -1;
+            Integer numberValues;
+            Double[] newArray;
             while ((line = bufferedReader.readLine()) != null) {
                 switch(line){
                     case "{": // add a new subarray
                         ++curSubarray;
-                        ArrayList<Double> newAdd = new ArrayList<>(0);
-                        newAdd.add(-Math.pow(10, 6));
+                        ArrayList<Double[]> newAdd = new ArrayList<>(0);
                         cowlInterpolation.add(newAdd);
                         break;
                     case "}":
-                        if (curSubarray == 0){
-                            cowlInterpolation.get(curSubarray).add(99999.0);
-                        }else{
-                            cowlInterpolation.get(curSubarray).add( // add the value to the array
-                                cowlInterpolation.get(curSubarray).get(cowlInterpolation.get(curSubarray).size()-1));
+                        Double[] lastArray = cowlInterpolation.get(curSubarray).get(cowlInterpolation.get(curSubarray).size()-1);
+                        numberValues = lastArray.length;
+                        newArray = new Double[numberValues];
+                        for (int i = 1; i < numberValues; ++i){
+                            newArray[i] = lastArray[i];
                         }
+                        newArray[0] = 99999999.0;
+                        cowlInterpolation.get(curSubarray).add(newArray);
                         break;
                     default:
-                        int size = line.length();
-                        if (line.charAt(size-1) != ','){ // return if the last character is not ,
-                            break;
+                        String[] words = line.trim().split("\\s+");
+                        numberValues = words.length;
+                        Double[] converted = new Double[numberValues];
+                        for (int i = 0; i < numberValues; ++i){
+                            converted[i] = Double.parseDouble(words[i]);
                         }
-                        cowlInterpolation.get(curSubarray).add( // add the value to the array
-                            Double.parseDouble(
-                            line.substring(0, size-1)));
+                        if (cowlInterpolation.get(curSubarray).size() == 1){
+                            newArray = new Double[numberValues];
+                            for (int i = 1; i < numberValues; ++i){
+                                newArray[i] = converted[i];
+                            }
+                            newArray[0] = -99999999.0;
+                            cowlInterpolation.get(curSubarray).add(newArray);
+                        }
+                        cowlInterpolation.get(curSubarray).add(converted);
                         break;
                 }
             }
@@ -172,96 +230,63 @@ public class Turret {
         return false;
     }
 
-    public static Double moveCowl(){
-        try{
-            // interpolate
-            Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
-            int i = 0, inputSize = cowlInterpolation.get(0).size();
-            while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
-                lowerInp = cowlInterpolation.get(0).get(i-1);
-                if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
-                    break;
-                }
-            }
-            if (i == inputSize){ // if the value is extreme
-                return -1.0;
-            }
-            Double dist1 = cowlInterpolation.get(1).get(i-1), // corresponding angle outputs to lowerInp and upperInp
-                   dist2 = cowlInterpolation.get(1).get(i);
-            return dist2 -
-                (upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from val2 versus val1 is to val2
-                *(dist2-dist1);    //the distance between the outputs of val1 and val2
-        }catch(IndexOutOfBoundsException e){
-            return -1.0; 
-        }
-    }
-
     public static Double[] curPower = {0.0, 0.0};
+    public static Double[] prevSpeed1 = {0.0, 0.0, 0.0, 0.0, 0.0},
+                           prevSpeed2 = {0.0, 0.0, 0.0, 0.0, 0.0};
+    public static int speedIndex = 0;
+
+    public static Boolean close = false;
 
     public static Double[] speedController(){
-        Double desiredSpeed = Robot.desiredSpeed;//-1.0;
-        // try{
-        //     // interpolate
-        //     Double lowerInp = cowlInterpolation.get(0).get(0), upperInp = cowlInterpolation.get(0).get(1); // will be the input values above and below the current distance
-        //     int i = 0, inputSize = cowlInterpolation.get(0).size();
-        //     while (++i < inputSize){ // go through the inputs until it surpasses the top value or upperInp >= our input distance value
-        //         lowerInp = cowlInterpolation.get(0).get(i-1);
-        //         System.out.println(lowerInp);
-        //         System.out.println(cowlInterpolation.get(2).get(i-1));
-        //         if ((upperInp = cowlInterpolation.get(0).get(i)) >= distance){
-        //             break;
-        //         }
-        //     }
-        //     if (i == inputSize){ // if the value is extreme
-        //         return curPower = new Double[] {0.0, 0.0};
-        //     }
-        //     Double speed1 = cowlInterpolation.get(2).get(i-1), // corresponding angle outputs to lowerInp and upperInp
-        //            speed2 = cowlInterpolation.get(2).get(i);
-        //     desiredSpeed = speed2 -
-        //         -(upperInp-distance)/(upperInp-lowerInp)   //ratio of how far the input is from speed2 versus speed1 is to speed2
-        //         *(speed2-speed1);    //the distance between the outputs of speed1 and speed2
-        // }catch(IndexOutOfBoundsException e){
-        //     return curPower = new Double[] {0.0, 0.0};
-        // }
-        // return new Double[] {desiredSpeed};
-        
-        Boolean close = true;
+        close = true;
+        int nextSpeedIndex = (speedIndex+1)%5;
 
         Double velocity = Math.abs(shooter1.getVelocity().getValueAsDouble()); // rotations per second
-        Double accel = shooter1.getAcceleration().getValueAsDouble(); // rotations per second per second
-        //System.out.print(velocity + ",   ");
+        prevSpeed1[speedIndex] = velocity;
+        Double accel = (velocity-prevSpeed1[nextSpeedIndex]);// rotations per second per second, averaged over .1 second
+        //if (speedIndex == 0) System.out.print(velocity + ",  ");
 
-        if (accel < (desiredSpeed-velocity)){
-            curPower[0] += (desiredSpeed-velocity)/desiredSpeed/50; // increase/decrease power based on whether it is going to make it to the right speed based on acceleration
+        Double p, i, d;
+        p = desiredSpeed*0.01;
+        if ((desiredSpeed-velocity) < 0){
+            p += (desiredSpeed-velocity)*0.005;
+        }else{
+            p += (desiredSpeed-velocity)*0.002;
         }
-        curPower[0] = Math.min(1.0, Math.max(0.0, curPower[0]));
+        i = (desiredSpeed-velocity)*0.000025;
+        curPower[0] += i;
+        d = accel*(-0.015);
+        Double power1 = Math.min(1.0, Math.max(0.0, p+curPower[0]+d));
 
-        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.2)
+        if (velocity < desiredSpeed*0.95 || velocity > desiredSpeed*1.1)
             close = false;
 
-        velocity = Math.abs(shooter2.getVelocity().getValueAsDouble());
-        Double velo1 = velocity;
-        accel = shooter2.getAcceleration().getValueAsDouble();
-        //System.out.println(velocity);
+        velocity = Math.abs(shooter2.getVelocity().getValueAsDouble()); // rotations per second
+        prevSpeed2[speedIndex] = velocity;
+        accel = (velocity-prevSpeed2[nextSpeedIndex]);// rotations per second per second, averaged over .1 second
+        //if (speedIndex == 0) System.out.println(velocity);
 
-        if (accel < (desiredSpeed-velocity)){
-            curPower[1] += (desiredSpeed-velocity)/desiredSpeed/50;
+        p = desiredSpeed*0.01;
+        if ((desiredSpeed-velocity) < 0){
+            p += (desiredSpeed-velocity)*0.005;
+        }else{
+            p += (desiredSpeed-velocity)*0.002;
         }
-        curPower[1] = Math.min(1.0, Math.max(0.0, curPower[1]));
+        i = (desiredSpeed-velocity)*0.000025;
+        curPower[1] += i;
+        d = accel*(-0.015);
+        Double power2 = Math.min(1.0, Math.max(0.0, p+curPower[1]+d));
 
-        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.2)
+        if (velocity < desiredSpeed*0.95 || velocity > desiredSpeed*1.1)
             close = false;
         
         if (close){
-            LED.setPattern('R');
-        }else{
             LED.setPattern('B');
+        }else{
+            LED.setPattern('R');
         }
-
-        //System.out.println((velo1+velocity)/2+",  ");
-
-        //System.out.println(curPower[0] + ", " + curPower[1]);
-        return curPower;
+        speedIndex = nextSpeedIndex;
+        return new Double[] {power1, power2};
     }
 }
 //fix lines that say TODO FIXME for arbitrary constants
