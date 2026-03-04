@@ -56,11 +56,13 @@ public class AutoDrive{
     static ArrayList<Double> Ypos = new ArrayList<>();
     static int totalPoints, progress;
     static Double maxDist = 0.0;
-    public static void setSpline(Double startX, Double startY, Double destX, Double destY, Double endX, Double endY, Double speed, Integer step){
-        Double angle = Math.atan2(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond)+Math.toRadians(RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble());
+    public static void setSpline(Double destX, Double destY, Double endX, Double endY, Double speed, Integer step){
+        Double startY = RobotContainer.drivetrain.getState().Pose.getY();
+        Double startX = RobotContainer.drivetrain.getState().Pose.getX();
+        Double angle = Math.atan2(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360));
         Double dist = Math.sqrt(Math.pow(RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond, 2) + Math.pow(RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond, 2));
-        Double srcX = -dist*Math.cos(angle)*2/speed;
-        Double srcY = -dist*Math.sin(angle)*2/speed;
+        Double srcX = -dist*Math.cos(angle)/speed*((alliance == 'R')?1:-1);
+        Double srcY = -dist*Math.sin(angle)/speed*((alliance == 'R')?1:-1);
         destX -= startX;
         destY -= startY;
         
@@ -114,10 +116,10 @@ public class AutoDrive{
         Xpos.add(step, destX+startX);
         Ypos.add(step, destY+startY);
         for (int i = 0; i < step; ++i){
-            // System.out.print(Xpos.get(i));
-            // System.out.print("       ");
-            // System.out.print(Ypos.get(i));
-            // System.out.println();
+            System.out.print(Xpos.get(i));
+            System.out.print("       ");
+            System.out.print(Ypos.get(i));
+            System.out.println();
         }
         maxDist /= speed;
         validSpline = true;
@@ -159,21 +161,19 @@ public class AutoDrive{
             Driver_Controller.SwerveCommandXValue = -speed*Math.cos(driveAngle);
             Driver_Controller.SwerveCommandYValue = -speed*Math.sin(driveAngle);
             if (specifiedAngle < -99998){
-                Driver_Controller.SwerveCommandEncoderValue = Math.toDegrees(driveAngle);
+                specifiedAngle = Math.toDegrees(driveAngle);
                 
             }
             Driver_Controller.SwerveCommandEncoderValue = specifiedAngle;
-            //System.out.println(Math.toDegrees(driveAngle));
             Driver_Controller.SwerveControlSet(true);
             return false;
         }else{
-            //Driver_Controller.SwerveControlSet(false);
             validSpline = false;
             return true;
         }
     }
     public static Boolean driveSpline(){
-        return driveSpline(-99999.0);
+        return driveSpline(-999999.0);
     }
     
 }

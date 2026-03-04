@@ -4,17 +4,13 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import edu.wpi.first.wpilibj.Servo;
-
-import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.*;
-import frc.robot.Vision;
 
 public class Robot extends TimedRobot {
   public static Boolean isTestChassis = false;
@@ -56,20 +52,56 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledExit() {}
 
+  public static Double[] destPoints = {0.0, 0.0, 0.0}; // x1, x2, y
+  public static void determinePoints(){
+    Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
+        Double odox = RobotContainer.drivetrain.getState().Pose.getX();
+    if (odoy > 4.034663){
+      destPoints[2] = +7.4247756+0.1;
+    }else{
+      destPoints[2] = (4.034663*2-7.4247756)-0.1;
+    }
+    if (odox > (11.915394+4.62534)/2){
+      destPoints[0] = 11.915394;
+      if (odox > 11.915394){
+        destPoints[1] = 11.915394-2;
+      }else{
+        destPoints[1] = 11.915394+2;
+      }
+    }else{
+      destPoints[0] = 4.62534;
+      if (odox > 4.62534){
+        destPoints[1] = 4.62534-2;
+      }else{
+        destPoints[1] = 4.62534+2;
+      }
+    }
+  }
+  String auto = "stay, shoot";
   @Override
   public void autonomousInit() {
+    Autonomous.reset();
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
-    m_autonomousCommand = m_robotContainer.getAutonomousCommand();
+    //m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     Driver_Controller.define_Controller();
     if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
+      //m_autonomousCommand.schedule();
     }
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
+    auto = RobotContainer.autoChooser.getSelected();
+    Autonomous.reset();
   }
 
   @Override
   public void autonomousPeriodic() {
-    AutoDrive.driveSpline();
+    switch(auto){
+      case "stay, shoot":
+        Autonomous.shootAuto();
+        break;
+      case "shuttle":
+        Autonomous.shuttleAuto();
+        break;
+    }
   }
 
   @Override
@@ -149,43 +181,18 @@ public class Robot extends TimedRobot {
   static int cnt = 0;
   public static int autoState;
   Double angle = 45.0;
-  public static Double[] destPoints = {0.0, 0.0, 0.0}; // x1, x2, y
 
-  public static void determinePoints(){
-    Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
-        Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-    if (odoy > 4.034663){
-      destPoints[2] = (4.034663+7.4247756)/2;
-    }else{
-      destPoints[2] = ((4.034663*3)-7.4247756)/2;
-    }
-    if (odox > (11.915394+4.62534)/2){
-      destPoints[0] = 11.915394;
-      if (odox > 11.915394){
-        destPoints[1] = 11.915394-2;
-      }else{
-        destPoints[1] = 11.915394+2;
-      }
-    }else{
-      destPoints[0] = 4.62534;
-      if (odox > 4.62534){
-        destPoints[1] = 4.62534-2;
-      }else{
-        destPoints[1] = 4.62534+2;
-      }
-    }
-  }
-
-  public static Double desiredSpeed = 50.0, cowlAngle = 0.5;
   public static Servo servo1 = new Servo(2);
 
-  static Double[] curUpperSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  static Double[] curLowerSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  static int curIndexUpper = 0, curIndexLower = 0;
+  static Double[] curCowlSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  static Double[] curSpeedSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  static Double[] curOffsetSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
 
   @Override
   public void teleopPeriodic() {
-    Double transportPower, intakePower;
+    Double transportPower, intakePower, spinPower;
+    Turret.calcDist();
     // if (Driver_Controller.buttonReefAlign()){
     //   if (!autoLastPressed){
     //     determinePoints();
@@ -193,7 +200,7 @@ public class Robot extends TimedRobot {
     //     autoState = 0;
     //     Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
     //     Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-    //     AutoDrive.setSpline(odox, odoy, destPoints[0], destPoints[2], destPoints[0]-destPoints[1], 0.0, 2.5, 50);
+    //     AutoDrive.setSpline(destPoints[0], destPoints[2], destPoints[0]-destPoints[1], 0.0, 2.5, 50);
     //     System.out.println(destPoints[0]+"  "+destPoints[1]+"  "+destPoints[2]);
     //   }
 
@@ -203,7 +210,7 @@ public class Robot extends TimedRobot {
     //       Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
     //       Double odox = RobotContainer.drivetrain.getState().Pose.getX();
     //       Driver_Controller.SwerveControlSet(true);
-    //       AutoDrive.setSpline(odox, odoy, destPoints[1], destPoints[2], 0.0, 0.0, 2.5, 50);
+    //       AutoDrive.setSpline(destPoints[1], destPoints[2], 0.0, 0.0, 2.5, 50);
     //       ++autoState;
     //     }else if (autoState == 1){
     //       ++autoState;
@@ -214,39 +221,44 @@ public class Robot extends TimedRobot {
     //   }
     // }else Driver_Controller.SwerveControlSet(false);
 
-    curUpperSlider[curIndexUpper] = Driver_Controller.upperDriverSlider();
-    curLowerSlider[curIndexLower] = Driver_Controller.lowerDriverSlider();
-    Double lowerDriverSlider = 0.0, upperDriverSlider = 0.0;
+    curCowlSlider[curIndexCowl] = Driver_Controller.cowlSlider();
+    curSpeedSlider[curIndexSpeed] = Driver_Controller.shooterSpeedSlider();
+    curOffsetSlider[curOffsetIndex] = Driver_Controller.offsetSlider();
+    Double averageSpeed = 0.0, averageCowl = 0.0, averageOffset = 0.0;
     for (int i = 0; i < 10; ++i){
-      lowerDriverSlider += curLowerSlider[i]/10;
-      upperDriverSlider += curUpperSlider[i]/10;
+      averageSpeed += curSpeedSlider[i]/10;
+      averageCowl += curCowlSlider[i]/10;
+      averageOffset += curOffsetSlider[i]/10;
     }
-    curIndexLower = (curIndexLower+1)%10;
-    curIndexUpper = (curIndexUpper+1)%10;
+    curIndexSpeed = (curIndexSpeed+1)%10;
+    curIndexCowl = (curIndexCowl+1)%10;
+    curOffsetIndex = (curOffsetIndex+1)%10;
 
-    desiredSpeed = 45+lowerDriverSlider*35;
-    cowlAngle = 0.5+upperDriverSlider*0.5;
-    //System.out.println(desiredSpeed + ",  " + cowlAngle);
-    Turret.calcDist();
+    if (Driver_Controller.manualSwitch())Turret.desiredSpeed = averageSpeed;
+    if (Driver_Controller.manualSwitch())Turret.cowlAngle = averageCowl;
+    if (Driver_Controller.manualSwitch())Turret.interpolatedTurretOffset = averageOffset;
+    
     //autoLastPressed = Driver_Controller.buttonReefAlign();
-    if (Driver_Controller.buttonL1()){
-      Turret.turretSpin.set(Turret.resetEncoder());
-    }else if (Driver_Controller.buttonScoreAlgae()){
-      Turret.turretSpin.set(Turret.spinTurret()/2);
+    if (Driver_Controller.buttonResetTurret()){
       Turret.encoderStatus = 's';
-    }else{
-      Turret.turretSpin.set(0.0);
     }
+    spinPower = Turret.resetEncoder();
+    if (Math.abs(spinPower) < 0.0001){
+      Turret.encoderStatus = 'b';
+      spinPower = Turret.spinTurret();
+    }
+    Turret.turretSpin.set(spinPower);
+
     Double[] power = {0.0, 0.0};
-    if (Driver_Controller.buttonL2()){
+    if (Driver_Controller.runShooterSwitch()){
       power = Turret.speedController();
     }else{
       Turret.curPower[0] = 0.0;
       Turret.curPower[1] = 0.0;
     }
-    Turret.servo1.set(cowlAngle);
-    Turret.servo2.set(cowlAngle);
-    Turret.servoInverted.set(1-cowlAngle);
+    Turret.servo1.set(Turret.cowlAngle);
+    Turret.servo2.set(Turret.cowlAngle-0.129);
+    Turret.servoInverted.set(1-Turret.cowlAngle+0.162);
 
     Turret.shooter1.set(power[0]);
     Turret.shooter2.set(-power[1]);
@@ -256,6 +268,9 @@ public class Robot extends TimedRobot {
 
     Transport.setIntake(intakePower);
     Transport.setTransport(transportPower);
+    if (curIndexCowl == 0){
+      System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngle);
+    }
   }
 
   @Override

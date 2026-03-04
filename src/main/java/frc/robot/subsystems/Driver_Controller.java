@@ -58,88 +58,7 @@ public class Driver_Controller {
         else{
             m_Controller2 = m_tempController;
         }
-    }/*
-    for(int i=1; i<=4; i++) {
-        switch (i) {
-            case 1:
-                m_tempController = new XboxController(3);
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller0 = new CommandXboxController(3);
-                    
-                    SwerveCommandXboxControllerPort = 3;
-                }
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller1 = new Joystick(3);
-                    SwerveRotaryEncoderPort = 3;
-                    //System.out.println("Set controller port 3");
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller2 = m_tempController;
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller3 = m_tempController;
-                }
-            case 2:
-                m_tempController = new XboxController(1);
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller0 = new CommandXboxController(1);
-                    
-                    SwerveCommandXboxControllerPort = 1;
-                }
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller1 = new Joystick(1);
-                    SwerveRotaryEncoderPort = 1;
-                    //System.out.println("Set controller port 1");
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller2 = m_tempController;
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller3 = m_tempController;
-                }
-            case 3:
-                m_tempController = new XboxController(2);
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller0 = new CommandXboxController(2);
-                    
-                    SwerveCommandXboxControllerPort = 2;
-                }
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller1 = new Joystick(2);
-                    SwerveRotaryEncoderPort = 2;
-                    //System.out.println("Set controller port 2");
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller2 = m_tempController;
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller3 = m_tempController;
-                }
-            case 4:
-                m_tempController = new XboxController(0);
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller0 = new CommandXboxController(0);
-                    
-                    SwerveCommandXboxControllerPort = 0;
-                }
-                if ((m_tempController.getRawButton(11) == false) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller1 = new Joystick(0);
-                    SwerveRotaryEncoderPort = 0;
-                    //System.out.println("Set controller port 0");
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == false)) {
-                    m_Controller2 = m_tempController;
-                }
-                if ((m_tempController.getRawButton(11) == true) && (m_tempController.getRawButton(12) == true)) {
-                    m_Controller3 = m_tempController;
-                }
-        }
-        // m_Controller0 = new CommandXboxController(0);
-        // m_Controller1 = new Joystick(1);
-        // m_Controller2 = new XboxController(2);
-        // m_Controller3 = new XboxController(3);
-    }*/
-    //System.out.println(Driver_Controller.SwerveRotaryEncoderPort);
+    }
 }
 
 public static Boolean driverSwitch(){
@@ -159,53 +78,41 @@ public static Double upperDriverSlider(){
 public static Double lowerDriverSlider(){
     return m_Controller1.getRawAxis(4);}
     
+public static Boolean switch1(){
+    return !m_Controller3.getRawButton(8);}
+public static Boolean switch2(){
+    return !m_Controller3.getRawButton(7);}
+public static Boolean switch3(){
+    return !m_Controller3.getRawButton(9);}
+public static Boolean switch4(){
+    return !m_Controller3.getRawButton(10);}
+public static Boolean manualSwitch(){
+    return switch1();}
+public static Boolean runShooterSwitch(){
+    return switch2();}
+public static Boolean transportSwitch(){
+    return switch3();}
+public static Boolean intakeSwitch(){
+    return switch4();}
 
-public static Boolean buttonExtendClimb(){
-    return m_Controller3.getRawButton(1);}
-public static Boolean buttonRetractClimb(){
-    return m_Controller3.getRawButton(2);}
-public static Boolean buttonScoreAlgae(){
-    return m_Controller3.getRawButton(3);}
-public static Boolean buttonCoralStationIntake(){
+public static Double cowlSlider(){
+    return 0.38*(1+m_Controller3.getRawAxis(4));}
+public static Double shooterSpeedSlider(){
+    return 35+25*m_Controller3.getRawAxis(3);}
+public static Double offsetSlider(){
+    return 20*m_Controller3.getRawAxis(1);}
+
+public static Boolean buttonIntakeReverse(){
     return m_Controller3.getRawButton(4);}
-public static Boolean buttonCoralIntakeGround(){
-    return m_Controller3.getRawButton(6);}
-public static Boolean buttonReverseCoral(){
+public static Boolean buttonTransportReverse(){
     return m_Controller3.getRawButton(5);}
-public static Boolean buttonTransportPivot(){
-    return m_Controller3.getRawButton(7);}
-public static Boolean buttonRemoveAlgae(){
-    return m_Controller3.getRawButton(8);} 
-public static Boolean switchAlgaeIntake(){
-    return !(m_Controller3.getRawButton(9));}
-public static Boolean switchExtraOnOff(){
-    return m_Controller3.getRawButton(10);}
-        
-public static Boolean buttonL4(){
+public static Boolean buttonResetTurret(){
+    return m_Controller3.getRawButton(6);}
+
+public static Boolean buttonEBrake(){
     return m_Controller2.getRawButton(1);}
-public static Boolean buttonL3(){
-    return m_Controller2.getRawButton(2);}
-public static Boolean buttonL2(){
-    return m_Controller2.getRawButton(3);}
-public static Boolean buttonL1(){
-    return m_Controller2.getRawButton(4);}
-public static Boolean buttonResetElevator(){
-    return m_Controller2.getRawButton(5);}
-      
-public static int ReefPosition(){
-    return (22-((m_Controller2.getRawButton(11))?1:0)-((m_Controller2.getRawButton(10))?2:0)-((m_Controller2.getRawButton(9))?3:0)-((m_Controller2.getRawButton(12))?6:0))%12;
-    //return (22-Math.round((m_Controller2.getRawAxis(3)+1)/2)-Math.round((m_Controller2.getRawAxis(1)+1))-Math.round((m_Controller2.getRawAxis(0)+1)*1.5)-Math.round((m_Controller2.getRawAxis(4)+1)*3))%12;
-    /*if (m_Controller2.getRawButton(10))
-        return (((2-m_Controller2.getRawAxis(0))%3 + Math.round(m_Controller2.getRawAxis(1))*3)+5)%12+1;
-    return ((-m_Controller2.getRawAxis(0)+2)%3 + Math.round(m_Controller2.getRawAxis(1))*3+11)%12+1;*/
-}
-      
-public static int getLevel(){
-    if(buttonL2()) return 2;
-    if(buttonL3()) return 3;
-    if(buttonL4()) return 4;
-    return 0;
-}
+
+
 final  double pos[] = {-1.0,-0.75,-0.5,-0.1 ,-0.03, 0,0.03, 0.1, 0.5, 0.75,1};
 final  double pwr[] = {-1  , -0.3,-0.1,-0.02,    0, 0,   0,0.02, 0.1,   .3,1};
 final double Speed = new RobotContainer().MaxSpeed;
@@ -247,8 +154,8 @@ public static void SwerveInputPeriodic(){
     else{ //Controller Mode
         Double sliderMult = 1.0;//Driver_Controller.upperDriverSlider()*0.45+0.55;
         //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
-        SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX(), m_Controller0.getLeftY())[0]*sliderMult;
-        SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX(), m_Controller0.getLeftY())[1]*sliderMult;
+        SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult;
+        SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult;
         SwerveEncoderPassthrough = Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough));
         //System.out.println(Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough)));
         //SwerveXPassthrough = -m_Controller0.getLeftY();

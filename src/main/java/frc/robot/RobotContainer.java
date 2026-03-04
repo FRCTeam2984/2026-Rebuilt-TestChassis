@@ -49,24 +49,17 @@ public class RobotContainer {
     //public final ArmController armController = new ArmController();
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
-    private final SendableChooser<Command> autoChooser;
+    public static final SendableChooser<String> autoChooser = new SendableChooser<>();
 
     private final CommandXboxController joystick = new CommandXboxController(0);
 
-    public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-
-    
+    public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
     public RobotContainer() {
-        
-           // Build an auto chooser. This will use Commands.none() as the default option.
-        autoChooser = AutoBuilder.buildAutoChooser();
-        autoChooser.addOption("Test Path", Constants.TestPath);
-        
-        
-
-        // Another option that allows you to specify the default auto by its name
-        // autoChooser = AutoBuilder.buildAutoChooser("My Default Auto");
+        autoChooser.addOption("stay, shoot", "stay, shoot");
+        autoChooser.addOption("outpost", "outpost");
+        autoChooser.addOption("intake, shoot", "intake, shoot");
+        autoChooser.setDefaultOption("shuttle", "shuttle");
 
         SmartDashboard.putData("Auto Chooser", autoChooser);
 
@@ -150,7 +143,7 @@ public class RobotContainer {
             drivetrain.applyRequest(() ->
             drive.withVelocityX(Driver_Controller.SwerveXPassthrough) // Drive forward with negative Y (forward)
                     .withVelocityY(Driver_Controller.SwerveYPassthrough) // Drive left with negative X (left)
-                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier*((Driver_Controller.SwerveCommandControl == true) ? 0.45 : 1)) // Drive counterclockwise with negative X (left)
+                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier) // Drive counterclockwise with negative X (left)
             )
         );
 
@@ -162,9 +155,5 @@ public class RobotContainer {
         );
 
         drivetrain.registerTelemetry(logger::telemeterize);
-    }
-    public Command getAutonomousCommand() {
-        return autoChooser.getSelected();
-        //eturn Commands.print("No autonomous command configured");
     }
 }
