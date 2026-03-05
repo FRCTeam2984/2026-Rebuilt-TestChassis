@@ -50,6 +50,8 @@ public class RobotContainer {
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
     public static final SendableChooser<String> autoChooser = new SendableChooser<>();
+    public static final SendableChooser<Boolean> shootFirstSelector = new SendableChooser<>();
+    public static final SendableChooser<Boolean> idleShooterSelector = new SendableChooser<>();
 
     private final CommandXboxController joystick = new CommandXboxController(0);
 
@@ -59,9 +61,18 @@ public class RobotContainer {
         autoChooser.addOption("stay, shoot", "stay, shoot");
         autoChooser.addOption("outpost", "outpost");
         autoChooser.addOption("intake, shoot", "intake, shoot");
+        autoChooser.addOption("half-intake", "half-intake");
         autoChooser.setDefaultOption("shuttle", "shuttle");
 
+        idleShooterSelector.addOption("keep shooters fast", false);
+        idleShooterSelector.setDefaultOption("no shooter while intaking", true);
+
+        shootFirstSelector.addOption("shoot before intake", true);
+        shootFirstSelector.setDefaultOption("shoot only after", false);
+
         SmartDashboard.putData("Auto Chooser", autoChooser);
+        SmartDashboard.putData("idle shooter?", idleShooterSelector);
+        SmartDashboard.putData("Shoot first?", shootFirstSelector);
 
         configureBindings();
         

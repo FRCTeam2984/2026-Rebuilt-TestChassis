@@ -51,6 +51,16 @@ public class LED {
             case "Red":
                 setPattern('r'); // solid red
                 break;
+            case "Error":
+            case "error":
+                setPattern('e'); // solid red
+                break;
+            case "Warn":
+            case "warn":
+            case "Warning":
+            case "warning":
+                setPattern('a'); // solid red
+                break;
         }
     }
 }

@@ -47,7 +47,15 @@ public class Robot extends TimedRobot {
   public void disabledInit() {}
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+    if (Vision.camera.isConnected() == false){
+      LED.setPattern('e');
+    }else if (Vision.seenTags){
+      LED.setPattern("rainbow");
+    }else{
+      LED.setPattern("warn");
+    }
+  }
 
   @Override
   public void disabledExit() {}
@@ -89,17 +97,29 @@ public class Robot extends TimedRobot {
     }
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
     auto = RobotContainer.autoChooser.getSelected();
+    Autonomous.idleShooter = RobotContainer.idleShooterSelector.getSelected();
+    Autonomous.shootFirst = RobotContainer.shootFirstSelector.getSelected();
     Autonomous.reset();
   }
 
   @Override
   public void autonomousPeriodic() {
     switch(auto){
-      case "stay, shoot":
-        Autonomous.shootAuto();
-        break;
       case "shuttle":
         Autonomous.shuttleAuto();
+        break;
+      case "outpost":
+        Autonomous.outpostAuto();
+        break;
+      case "half-intake":
+        Autonomous.halfIntakeAuto();
+        break;
+      case "intake, shoot":
+        Autonomous.intakeAuto();
+        break;
+      case "stay, shoot":
+      default:
+        Autonomous.shootAuto();
         break;
     }
   }

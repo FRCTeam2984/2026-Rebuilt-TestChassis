@@ -53,6 +53,7 @@ public class Vision {
     // Simulation
     private PhotonCameraSim cameraSim;
     private VisionSystemSim visionSim;
+    public static Boolean seenTags = false;
 
     /**
      * @param estConsumer Lamba that will accept a pose estimate and pass it to your desired {@link
@@ -92,7 +93,6 @@ public class Vision {
     public void periodic() {
         Optional<EstimatedRobotPose> visionEst = Optional.empty();
         for (var change : camera.getAllUnreadResults()) {
-            
             visionEst = photonEstimator.estimateCoprocMultiTagPose(change);
             if (visionEst.isEmpty()) {
                 visionEst = photonEstimator.estimateLowestAmbiguityPose(change);
@@ -109,7 +109,7 @@ public class Vision {
                             getSimDebugField().getObject("VisionEstimation").setPoses();
                         });
             }
-            
+            seenTags = seenTags || visionEst.isPresent();
             visionEst.ifPresent(
                     est -> {
                         // Change our trust in the measurement based on the tags we can see
