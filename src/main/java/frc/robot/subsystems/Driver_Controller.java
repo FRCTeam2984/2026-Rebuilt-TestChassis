@@ -8,7 +8,7 @@
  */
 package frc.robot.subsystems;
 
-
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
@@ -65,7 +65,7 @@ public static Boolean driverSwitch(){
     return m_Controller1.getRawButton(6);}
 public static Boolean buttonReefAlign(){
     return m_Controller1.getRawButton(1);}
-public static Boolean buttonRotateToReef(){
+public static Boolean flipDrive(){
     return m_Controller1.getRawButton(3);}
 public static Boolean buttonResetIntake(){
     return false;}
@@ -102,6 +102,12 @@ public static Double shooterSpeedSlider(){
 public static Double offsetSlider(){
     return 20*m_Controller3.getRawAxis(1);}
 
+public static Boolean useOffsets(){
+    return m_Controller3.getRawButton(1);}
+public static Boolean pauseTurret(){
+    return  m_Controller3.getRawButton(2);}
+public static Boolean buttonShooterReverse(){
+    return m_Controller3.getRawButton(3);}
 public static Boolean buttonIntakeReverse(){
     return m_Controller3.getRawButton(4);}
 public static Boolean buttonTransportReverse(){
@@ -110,7 +116,13 @@ public static Boolean buttonResetTurret(){
     return m_Controller3.getRawButton(6);}
 
 public static Boolean buttonEBrake(){
-    return m_Controller2.getRawButton(1);}
+    return (m_Controller2.getRawButton(1) || m_Controller1.getRawButton(6));}
+public static Boolean buttonBrake(){
+    return (m_Controller1.getRawButton(1));}
+public static Trigger needBrake = new Trigger(() -> (buttonEBrake() || buttonBrake()));
+
+public static Double shooterOffsetSlider(){
+    return 10*m_Controller3.getRawAxis(3);}
 
 
 final  double pos[] = {-1.0,-0.75,-0.5,-0.1 ,-0.03, 0,0.03, 0.1, 0.5, 0.75,1};
@@ -152,10 +164,10 @@ public static void SwerveInputPeriodic(){
         SwerveYPassthrough = SwerveCommandYValue;
     }
     else{ //Controller Mode
-        Double sliderMult = 1.0;//Driver_Controller.upperDriverSlider()*0.45+0.55;
+        Double sliderMult = Driver_Controller.upperDriverSlider()*0.45+0.55;
         //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
-        SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult;
-        SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult;
+        SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult*((flipDrive())?-1.0:1.0);
+        SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult*((flipDrive())?-1.0:1.0);
         SwerveEncoderPassthrough = Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough));
         //System.out.println(Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough)));
         //SwerveXPassthrough = -m_Controller0.getLeftY();

@@ -58,7 +58,9 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void disabledExit() {}
+  public void disabledExit() {
+    LED.setPattern("rainbow");
+  }
 
   public static Double[] destPoints = {0.0, 0.0, 0.0}; // x1, x2, y
   public static void determinePoints(){
@@ -118,6 +120,10 @@ public class Robot extends TimedRobot {
         Autonomous.intakeAuto();
         break;
       case "stay, shoot":
+        Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+        Driver_Controller.SwerveCommandXValue = 0.0;
+        Driver_Controller.SwerveCommandYValue = 0.0;
+        Driver_Controller.SwerveControlSet(true);
       default:
         Autonomous.shootAuto();
         break;
@@ -125,9 +131,7 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void autonomousExit() {
-    LED.setPattern("rainbow");
-  }
+  public void autonomousExit() {}
 
   public static Integer activeTime(){
     Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
@@ -213,33 +217,6 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     Double transportPower, intakePower, spinPower;
     Turret.calcDist();
-    // if (Driver_Controller.buttonReefAlign()){
-    //   if (!autoLastPressed){
-    //     determinePoints();
-    //     angle = 1.0*Math.round(RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()/90)*90+55;
-    //     autoState = 0;
-    //     Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
-    //     Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-    //     AutoDrive.setSpline(destPoints[0], destPoints[2], destPoints[0]-destPoints[1], 0.0, 2.5, 50);
-    //     System.out.println(destPoints[0]+"  "+destPoints[1]+"  "+destPoints[2]);
-    //   }
-
-    //   if (AutoDrive.driveSpline(angle)){
-
-    //     if (autoState == 0){
-    //       Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
-    //       Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-    //       Driver_Controller.SwerveControlSet(true);
-    //       AutoDrive.setSpline(destPoints[1], destPoints[2], 0.0, 0.0, 2.5, 50);
-    //       ++autoState;
-    //     }else if (autoState == 1){
-    //       ++autoState;
-    //       Driver_Controller.SwerveControlSet(false);
-    //     }else{
-    //       Driver_Controller.SwerveControlSet(false);
-    //     }
-    //   }
-    // }else Driver_Controller.SwerveControlSet(false);
 
     curCowlSlider[curIndexCowl] = Driver_Controller.cowlSlider();
     curSpeedSlider[curIndexSpeed] = Driver_Controller.shooterSpeedSlider();
@@ -267,36 +244,51 @@ public class Robot extends TimedRobot {
       Turret.encoderStatus = 'b';
       spinPower = Turret.spinTurret();
     }
-    Turret.turretSpin.set(spinPower);
 
     Double[] power = {0.0, 0.0};
     if (Driver_Controller.runShooterSwitch()){
       power = Turret.speedController();
     }else{
+      if (Driver_Controller.buttonShooterReverse()){
+        power[0] = 0.1;
+        power[1] = -0.1;
+      }
       Turret.curPower[0] = 0.0;
       Turret.curPower[1] = 0.0;
+      if (Vision.seenTags){
+        LED.setPattern("rainbow");
+      }else{
+        LED.setPattern("warn");
+      }
     }
-    Turret.servo1.set(Turret.cowlAngle);
-    Turret.servo2.set(Turret.cowlAngle-0.129);
-    Turret.servoInverted.set(1-Turret.cowlAngle+0.162);
-
-    Turret.shooter1.set(power[0]);
-    Turret.shooter2.set(-power[1]);
-
+    
     intakePower = Transport.spinIntake();
     transportPower = Transport.spinTransport();
 
-    Transport.setIntake(intakePower);
-    Transport.setTransport(transportPower);
     if (curIndexCowl == 0){
       System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngle);
+    }
+
+    if (Driver_Controller.buttonEBrake()){
+      Transport.setIntake(0.0);
+      Transport.setTransport(0.0);
+      Turret.shooter1.set(0.0);
+      Turret.shooter2.set(0.0);
+      Turret.turretSpin.set(0.0);
+    }else{
+      Transport.setIntake(intakePower);
+      Transport.setTransport(transportPower);
+      Turret.shooter1.set(power[0]);
+      Turret.shooter2.set(-power[1]);
+      Turret.turretSpin.set(spinPower);
+      Turret.servo1.set(Turret.cowlAngle);
+      Turret.servo2.set(Turret.cowlAngle-0.129);
+      Turret.servoInverted.set(1-Turret.cowlAngle+0.162);
     }
   }
 
   @Override
-  public void teleopExit() {
-    LED.setPattern("rainbow");
-  }
+  public void teleopExit() {}
 
   @Override
   public void testInit() {

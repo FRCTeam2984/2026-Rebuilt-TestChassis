@@ -45,15 +45,11 @@ public class RobotContainer {
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
-    //code for robot 2
-    //public final ArmController armController = new ArmController();
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
     public static final SendableChooser<String> autoChooser = new SendableChooser<>();
     public static final SendableChooser<Boolean> shootFirstSelector = new SendableChooser<>();
     public static final SendableChooser<Boolean> idleShooterSelector = new SendableChooser<>();
-
-    private final CommandXboxController joystick = new CommandXboxController(0);
 
     public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
@@ -64,8 +60,8 @@ public class RobotContainer {
         autoChooser.addOption("half-intake", "half-intake");
         autoChooser.setDefaultOption("shuttle", "shuttle");
 
-        idleShooterSelector.addOption("keep shooters fast", false);
-        idleShooterSelector.setDefaultOption("no shooter while intaking", true);
+        idleShooterSelector.addOption("keep shooters fast", true);
+        idleShooterSelector.setDefaultOption("no shooter while intaking", false);
 
         shootFirstSelector.addOption("shoot before intake", true);
         shootFirstSelector.setDefaultOption("shoot only after", false);
@@ -166,5 +162,8 @@ public class RobotContainer {
         );
 
         drivetrain.registerTelemetry(logger::telemeterize);
+
+        Driver_Controller.m_Controller0.a().whileTrue(drivetrain.applyRequest(() -> brake));
+        Driver_Controller.needBrake.whileTrue(drivetrain.applyRequest(() -> brake));
     }
 }
