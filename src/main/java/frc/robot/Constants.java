@@ -34,7 +34,7 @@ public class Constants {
         public static final String kCameraName = "NexiGo_HD_Webcam";
         // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
         public static final Transform3d kRobotToCam =
-                new Transform3d(new Translation3d(0.33, 0.0, 0.0), new Rotation3d(0, 0, 0));
+                new Transform3d(new Translation3d(0.33, 0.0, 0.0), new Rotation3d(Math.toRadians(180), Math.toRadians(15), 0));
 
         public static AprilTagFieldLayout kTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
