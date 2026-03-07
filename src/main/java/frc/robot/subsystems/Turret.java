@@ -95,10 +95,16 @@ public class Turret {
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrX , 2) + Math.pow(turrY, 2)); // pythagorean theorum
-        targetAngle = (15380*360-Math.toDegrees(Math.atan2(turrX, turrY)+odoA)-180)%360-180;
+        targetAngle = (15380*360-Math.toDegrees(Math.atan2(turrX, turrY)+odoA)+((Driver_Controller.flipDrive())?180.0:0.0)-180)%360-180;
         Double turretOffset = targetAngle - turretAngle;
+        if ((Robot.alliance == 'B' && odoX > blueTargetX[2]) || (Robot.alliance == 'R' && odoX < redTargetX[2])){
+            interpolatedTurretOffset = ((Driver_Controller.useOffsets())?Driver_Controller.offsetSlider():0.0);
+            desiredSpeed = 50.0;
+            cowlAngle = 0.0;
+            return;
+        }
 
-        distance += 0.5;
+        //distance += 1.0;
 
         // interpolate for the speed, cowl angle, and turret offset
         ArrayList<Double[]> upper, lower;
@@ -125,13 +131,17 @@ public class Turret {
             interpolated[i-1] = temp2 - (upper.get(0)[0]-targetAngle)/(upper.get(0)[0]-lower.get(0)[0])*(temp2-temp1);
         }
         if (!Driver_Controller.manualSwitch())interpolatedTurretOffset = interpolated[2];
+        if (Driver_Controller.useOffsets()) interpolatedTurretOffset += Driver_Controller.offsetSlider();
         desiredSpeed = interpolated[1];
+        if (Driver_Controller.useOffsets()) desiredSpeed += Driver_Controller.shooterOffsetSlider();
         cowlAngle = interpolated[0];
+        desiredSpeed = Math.max(10.0, Math.min(60.0, desiredSpeed));
 
-        modTurretOff = 180 - (turretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
+        modTurretOff = 180 - (turretOffset + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
     }
 
     public static Double spinTurret(){
+        if (Driver_Controller.pauseTurret())return 0.0;
         Double maxPowDist = 20.0; // TODO FIXME proportional power to error, at 20 degrees off, it will be going at maxPower
         Double power = modTurretOff/maxPowDist*maxPower;
 

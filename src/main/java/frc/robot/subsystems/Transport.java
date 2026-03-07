@@ -47,9 +47,11 @@ public class Transport {
         }
     }
     public static Double spinTransport(){
-        agitate(Driver_Controller.transportSwitch());
+        agitate(Driver_Controller.transportSwitch() || Driver_Controller.buttonTransportReverse());
+        if (Driver_Controller.buttonTransportReverse())
+            return 0.5;
         if (Driver_Controller.transportSwitch()){
-            if (Driver_Controller.buttonTransportReverse()){
+            if (System.nanoTime()%(2000*1000*1000) < 500*1000*1000){
                 return 0.5;
             }
             return -0.65;
@@ -94,10 +96,10 @@ public class Transport {
         long time = System.nanoTime()/600/1000/1000;
         long time_qsec = System.nanoTime()/250/1000/1000;
         if ((prevIntakePower!=0.0) || (isActive)) {
-            if ((time_qsec&15)<=1 || prevTransportPower > 0 || prevIntakePower > 0)
-                agitatorMotor.set(TalonSRXControlMode.PercentOutput, -0.6);
-            else
+            if (((time_qsec&15)<=1 || prevTransportPower > 0 || prevIntakePower > 0) && !Driver_Controller.buttonTransportReverse())
                 agitatorMotor.set(TalonSRXControlMode.PercentOutput, 0.6);
+            else
+                agitatorMotor.set(TalonSRXControlMode.PercentOutput, -0.6);
         } else {
             agitatorMotor.set(TalonSRXControlMode.PercentOutput, 0.0);
         }

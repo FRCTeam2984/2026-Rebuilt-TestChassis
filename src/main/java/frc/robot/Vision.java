@@ -33,6 +33,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import frc.robot.subsystems.Driver_Controller;
+
 import java.util.List;
 import java.util.Optional;
 import org.photonvision.EstimatedRobotPose;
@@ -91,6 +93,10 @@ public class Vision {
     }
 
     public void periodic() {
+        if (!Driver_Controller.driverSwitch()){
+            seenTags = false;
+            return;
+        }
         Optional<EstimatedRobotPose> visionEst = Optional.empty();
         for (var change : camera.getAllUnreadResults()) {
             visionEst = photonEstimator.estimateCoprocMultiTagPose(change);
@@ -109,7 +115,7 @@ public class Vision {
                             getSimDebugField().getObject("VisionEstimation").setPoses();
                         });
             }
-            seenTags = seenTags || visionEst.isPresent();
+            seenTags = visionEst.isPresent();
             visionEst.ifPresent(
                     est -> {
                         // Change our trust in the measurement based on the tags we can see
