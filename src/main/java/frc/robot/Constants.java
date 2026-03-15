@@ -26,17 +26,23 @@ public class Constants {
     public static final int shooterID1 = 20;
     public static final int shooterID2 = 19;
     public static final int transportID = 21;
-    public static final int turretSensorPort = 0;
+    public static final int turretSensorPort = 9;
     public static final int agitator2ID = 1; // left, 4in
     public static final int agitator1ID = 0; // right, 5in
     public static final int agitatorRedlineID = 22; // todo fixme
+    public static final int spindexerFalconID = 26;
+    public static final String interpolationReadFile = "/home/admin/newInterpolation.txt";//"/home/admin/cowlInterpolation.txt";
+    public static final String interpolationWriteFile = "/home/lvuser/newInterpolation.txt";// do not change this to cowlInterpolation
     public static class Vision {
-        public static final String kCameraName = "NexiGo_HD_Webcam";
-        // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
+        public static final String kCameraName = "FrontCam";
         public static final Transform3d kRobotToCam =
-                new Transform3d(new Translation3d(0.33, 0.0, 0.0), new Rotation3d(Math.toRadians(180), Math.toRadians(15), 0));
+                new Transform3d(new Translation3d(0.33, 0, 0.0), new Rotation3d(0, Math.toRadians(25), 0));
 
         public static AprilTagFieldLayout kTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
+
+        public static final String kCamera2Name = "BackCam";
+        public static final Transform3d kRobotToCam2 =
+                new Transform3d(new Translation3d(-0.33, -0.229, 0.0), new Rotation3d(0, Math.toRadians(25), Math.toRadians(180)));
 
         // The layout of the AprilTags on the field
         public static void readLayout(){

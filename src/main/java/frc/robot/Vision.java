@@ -46,7 +46,7 @@ import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 public class Vision {
-    public static PhotonCamera camera;
+    public PhotonCamera camera, camera2;
     private final PhotonPoseEstimator photonEstimator;
     private Matrix<N3, N1> curStdDevs;
     private final EstimateConsumer estConsumer;
@@ -55,18 +55,16 @@ public class Vision {
     // Simulation
     private PhotonCameraSim cameraSim;
     private VisionSystemSim visionSim;
-    public static Boolean seenTags = false;
+    public Boolean seenTags = false;
 
     /**
      * @param estConsumer Lamba that will accept a pose estimate and pass it to your desired {@link
      *     edu.wpi.first.math.estimator.SwerveDrivePoseEstimator}
      */
-    public Vision(EstimateConsumer estConsumer) {
+    public Vision(EstimateConsumer estConsumer, PhotonCamera newCamera, PhotonPoseEstimator newEstimator) {
         this.estConsumer = estConsumer;
-        camera = new PhotonCamera(kCameraName);
-
-        photonEstimator =
-                new PhotonPoseEstimator(kTagLayout, kRobotToCam);
+        camera = newCamera;
+        photonEstimator = newEstimator;
         //photonEstimator.setMultiTagFallbackStrategy(PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR);
 
         // ----- Simulation
@@ -93,10 +91,10 @@ public class Vision {
     }
 
     public void periodic() {
-        if (!Driver_Controller.driverSwitch()){
-            seenTags = false;
-            return;
-        }
+        // if (!Driver_Controller.visionSwitch()){
+        //     seenTags = false;
+        //     return;
+        // }
         Optional<EstimatedRobotPose> visionEst = Optional.empty();
         for (var change : camera.getAllUnreadResults()) {
             visionEst = photonEstimator.estimateCoprocMultiTagPose(change);
@@ -104,7 +102,6 @@ public class Vision {
                 visionEst = photonEstimator.estimateLowestAmbiguityPose(change);
             }
             updateEstimationStdDevs(visionEst, change.getTargets());
-
             if (Robot.isSimulation()) {
                 visionEst.ifPresentOrElse(
                         est ->
