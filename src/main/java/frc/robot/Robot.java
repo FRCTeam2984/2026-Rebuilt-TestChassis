@@ -4,7 +4,8 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.Servo;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonPoseEstimator;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -18,7 +19,7 @@ public class Robot extends TimedRobot {
   public static int scoringPos = 0;
   public static boolean autoLastPressed = false;
   private Command m_autonomousCommand;
-  private Vision vision;
+  private Vision vision, vision2;
   public final RobotContainer m_robotContainer;
 
   public Robot() {
@@ -27,12 +28,13 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     LED.assignPort();
-    LED.setPattern("rainbow");
+    LED.giveRange('d');
     Turret.readFiles();
     Transport.initMotors();
     Turret.initMotors();
     Constants.Vision.readLayout();
-    vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement);
+    vision = new Vision(RobotContainer.drivetrain::addVisionMeasurement, new PhotonCamera(Constants.Vision.kCameraName), new PhotonPoseEstimator(Constants.Vision.kTagLayout, Constants.Vision.kRobotToCam));
+    vision2 = new Vision(RobotContainer.drivetrain::addVisionMeasurement, new PhotonCamera(Constants.Vision.kCamera2Name), new PhotonPoseEstimator(Constants.Vision.kTagLayout, Constants.Vision.kRobotToCam2));
   }
   
   @Override
@@ -41,6 +43,7 @@ public class Robot extends TimedRobot {
     Driver_Controller.SwerveInputPeriodic();
     CommandScheduler.getInstance().run(); 
     vision.periodic();
+    vision2.periodic();
   }
 
   @Override
@@ -48,9 +51,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {
-    if (Vision.camera.isConnected() == false){
+    if ((vision.camera.isConnected() && vision2.camera.isConnected()) == false){
       LED.setPattern('e');
-    }else if (Vision.seenTags){
+    }else if (vision.seenTags || vision2.seenTags){
       LED.setPattern("rainbow");
     }else{
       LED.setPattern("warn");
@@ -118,6 +121,9 @@ public class Robot extends TimedRobot {
         break;
       case "intake, shoot":
         Autonomous.intakeAuto();
+        break;
+      case "depot":
+        Autonomous.depotAuto();
         break;
       case "stay, shoot":
         Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
@@ -206,18 +212,20 @@ public class Robot extends TimedRobot {
   public static int autoState;
   Double angle = 45.0;
 
-  public static Servo servo1 = new Servo(2);
-
   static Double[] curCowlSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   static Double[] curSpeedSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   static Double[] curOffsetSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
 
+  static Boolean saveLastPressed = false;
+
   @Override
   public void teleopPeriodic() {
-    Double transportPower, intakePower, spinPower;
+    if (System.nanoTime()%100*1000*1000 > 70*1000*1000)Driver_Controller.kitchenStove();
+    Double transportPower, intakePower, spinPower, spindexPow;
     Turret.calcDist();
 
+    // find the average of sliders over past 0.2 sec
     curCowlSlider[curIndexCowl] = Driver_Controller.cowlSlider();
     curSpeedSlider[curIndexSpeed] = Driver_Controller.shooterSpeedSlider();
     curOffsetSlider[curOffsetIndex] = Driver_Controller.offsetSlider();
@@ -235,7 +243,27 @@ public class Robot extends TimedRobot {
     if (Driver_Controller.manualSwitch())Turret.cowlAngle = averageCowl;
     if (Driver_Controller.manualSwitch())Turret.interpolatedTurretOffset = averageOffset;
     
-    //autoLastPressed = Driver_Controller.buttonReefAlign();
+    // stuff for easier interpolation data finding
+    if (Driver_Controller.buttonAngleAdjust()){
+      Double modTargAngle = (Turret.targetAngleDeg+32550.0*360+180)%360.0;
+      Double modAngleOff = modTargAngle - 45.0*(Math.toIntExact(Math.round(modTargAngle/45.0))%8);
+      Driver_Controller.SwerveCommandXValue = 0.0;
+      Driver_Controller.SwerveCommandYValue = 0.0;
+      Driver_Controller.SwerveCommandEncoderValue = (RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360;
+      Driver_Controller.SwerveCommandEncoderValue -= modAngleOff/5;
+      Driver_Controller.SwerveControlSet(true);
+    }else{
+      Driver_Controller.SwerveControlSet(false);
+    }
+
+    if (Driver_Controller.buttonSaveData() && !saveLastPressed){
+      Turret.saveInterpolationData(new Double[] 
+        {Turret.targetAngleDeg, Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset}
+      );
+    }
+    saveLastPressed = Driver_Controller.buttonSaveData();
+
+    // reset the turret/get power
     if (Driver_Controller.buttonResetTurret()){
       Turret.encoderStatus = 's';
     }
@@ -243,41 +271,56 @@ public class Robot extends TimedRobot {
     if (Math.abs(spinPower) < 0.0001){
       Turret.encoderStatus = 'b';
       spinPower = Turret.spinTurret();
+      if (Driver_Controller.pauseTurret()) spinPower = 0.0;
     }
 
+    // get shooter power and set LEDs
     Double[] power = {0.0, 0.0};
     if (Driver_Controller.runShooterSwitch()){
       power = Turret.speedController();
+      if (Turret.distance > 3.2){
+        LED.giveRange('f');
+      }else{
+        LED.giveRange('c');
+      }
     }else{
+      LED.giveRange('d');
+      Turret.avgSpeed = 0.0;
       if (Driver_Controller.buttonShooterReverse()){
-        power[0] = 0.1;
+        power[0] = -0.1;
         power[1] = -0.1;
       }
       Turret.curPower[0] = 0.0;
       Turret.curPower[1] = 0.0;
-      if (Vision.seenTags){
+      if (vision.seenTags || vision2.seenTags){
         LED.setPattern("rainbow");
       }else{
         LED.setPattern("warn");
       }
     }
     
+    // calc power for the transport and stuff
     intakePower = Transport.spinIntake();
     transportPower = Transport.spinTransport();
+    spindexPow = Transport.spindexerPower();
 
+    // periodically (every 10 cycles) print out current data
     if (curIndexCowl == 0){
-      System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngle);
+      System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f, speed=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
     }
 
+    // set power to motors if not EBrake
     if (Driver_Controller.buttonEBrake()){
       Transport.setIntake(0.0);
       Transport.setTransport(0.0);
+      Transport.setSpindexer(0.0);
       Turret.shooter1.set(0.0);
       Turret.shooter2.set(0.0);
       Turret.turretSpin.set(0.0);
     }else{
       Transport.setIntake(intakePower);
       Transport.setTransport(transportPower);
+      Transport.setSpindexer(spindexPow);
       Turret.shooter1.set(power[0]);
       Turret.shooter2.set(-power[1]);
       Turret.turretSpin.set(spinPower);
