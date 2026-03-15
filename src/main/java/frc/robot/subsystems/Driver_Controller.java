@@ -61,18 +61,18 @@ public class Driver_Controller {
     }
 }
 
-public static Boolean driverSwitch(){
-    return m_Controller1.getRawButton(6);}
-public static Boolean buttonReefAlign(){
+
+public static Boolean buttonBrake(){
     return m_Controller1.getRawButton(1);}
+public static Boolean buttonAngleAdjust(){
+    return m_Controller1.getRawButton(2);}
 public static Boolean flipDrive(){
     return m_Controller1.getRawButton(3);}
-public static Boolean buttonResetIntake(){
-    return false;}
-public static Boolean buttonHPSalign(){
-    return m_Controller1.getRawButton(2);}
-public static Boolean buttonRemoveAlign(){
+public static Boolean visionSwitch(){
+    return m_Controller1.getRawButton(4);}
+public static Boolean buttonSaveData(){
     return m_Controller1.getRawButton(5);}
+
 public static Double upperDriverSlider(){
     return m_Controller1.getRawAxis(3);}
 public static Double lowerDriverSlider(){
@@ -96,11 +96,11 @@ public static Boolean intakeSwitch(){
     return switch4();}
 
 public static Double cowlSlider(){
-    return 0.38*(1+m_Controller3.getRawAxis(4));}
+    return 0.38*(1+Driver_Controller.lowerDriverSlider());}//m_Controller3.getRawAxis(4)
 public static Double shooterSpeedSlider(){
     return 35+25*m_Controller3.getRawAxis(3);}
 public static Double offsetSlider(){
-    return 20*m_Controller3.getRawAxis(1);}
+    return 90*m_Controller3.getRawAxis(1);}
 
 public static Boolean useOffsets(){
     return m_Controller3.getRawButton(1);}
@@ -117,12 +117,16 @@ public static Boolean buttonResetTurret(){
 
 public static Boolean buttonEBrake(){
     return (m_Controller2.getRawButton(1) || m_Controller1.getRawButton(6));}
-public static Boolean buttonBrake(){
-    return (m_Controller1.getRawButton(1));}
 public static Trigger needBrake = new Trigger(() -> (buttonEBrake() || buttonBrake()));
 
 public static Double shooterOffsetSlider(){
-    return 10*m_Controller3.getRawAxis(3);}
+    return 20*m_Controller3.getRawAxis(3);}
+
+public static int kitchenStove(){
+    int num = (m_Controller2.getRawButton(11)?1:0)+(m_Controller2.getRawButton(10)?2:0)+(m_Controller2.getRawButton(9)?3:0)+(m_Controller2.getRawButton(12)?6:0);
+    num = 11-((num+6)%12);
+    return ((num>3)?2:num);
+}
 
 
 final  double pos[] = {-1.0,-0.75,-0.5,-0.1 ,-0.03, 0,0.03, 0.1, 0.5, 0.75,1};
@@ -164,7 +168,7 @@ public static void SwerveInputPeriodic(){
         SwerveYPassthrough = SwerveCommandYValue;
     }
     else{ //Controller Mode
-        Double sliderMult = Driver_Controller.upperDriverSlider()*0.45+0.55;
+        Double sliderMult = Driver_Controller.upperDriverSlider()*0.7+0.8;
         //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
         SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult*((flipDrive())?-1.0:1.0);
         SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult*((flipDrive())?-1.0:1.0);
