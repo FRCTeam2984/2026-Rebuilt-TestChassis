@@ -58,13 +58,13 @@ public class AutoDrive{
     static Double maxDist = 0.0;
     public static void setSpline(Double destX, Double destY, Double endX, Double endY, Double speed, Integer step){
         Double startY = RobotContainer.drivetrain.getState().Pose.getY();
-        Double startX = RobotContainer.drivetrain.getState().Pose.getX()*((alliance == 'B')?1.0:-1.0);
-        Double yVelo = RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond*((alliance == 'R')?1.0:-1.0),
-            xVelo = RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond*((alliance == 'R')?1.0:-1.0);
+        Double startX = RobotContainer.drivetrain.getState().Pose.getX();
+        Double yVelo = RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond,
+            xVelo = RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond;
         Double angle = Math.atan2(yVelo, xVelo)+Math.toRadians((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360);
         Double dist = Math.sqrt(Math.pow(yVelo, 2) + Math.pow(xVelo, 2));
-        Double srcX = dist*Math.cos(angle)/speed;
-        Double srcY = dist*Math.sin(angle)/speed;
+        Double srcX = -dist*Math.cos(angle)/speed;
+        Double srcY = -dist*Math.sin(angle)/speed;
         destX -= startX;
         destY -= startY;
         
@@ -117,11 +117,8 @@ public class AutoDrive{
         }
         Xpos.add(step, destX+startX);
         Ypos.add(step, destY+startY);
-        for (int i = 0; i < step; ++i){
-            // System.out.print(Xpos.get(i));
-            // System.out.print("       ");
-            // System.out.print(Ypos.get(i));
-            // System.out.println();
+        for (int i = 0; i <= step; ++i){
+            //System.out.printf("x = %.3f, y = %.3f\n", Xpos.get(i), Ypos.get(i));
         }
         maxDist /= speed;
         validSpline = true;

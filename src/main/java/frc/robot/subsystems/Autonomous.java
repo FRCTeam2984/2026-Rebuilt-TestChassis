@@ -17,12 +17,13 @@ public class Autonomous {
             }
             ++revdIntakeCnt;
         }
+        Turret.calcDist();
         Double shooterPower = Turret.resetEncoder();
-        //System.out.println(Turret.encoderStatus);
+        System.out.println(Turret.encoderStatus);
         if (Math.abs(shooterPower) < 0.0001){
             shooterPower = Turret.spinTurret();
         }
-        Turret.turretSpin.set(shooterPower);
+        if (!Driver_Controller.pauseTurret())Turret.turretSpin.set(shooterPower);
         if ((idleShooter == false) && (transport == false)){
             ready = false;
             Turret.shooter1.set(0.0);
@@ -32,14 +33,14 @@ public class Autonomous {
             return;
         }
         // spin up shooter and reset/aim turret and stuff
-        Turret.calcDist();
+        
         Double[] power = Turret.speedController();
         Turret.shooter1.set(power[0]);
         Turret.shooter2.set(-power[1]);
 
         // checks everything if ready to shoot
         ready = Turret.close
-            && (Math.abs(Turret.modTurretOff) < 5);
+            && (Driver_Controller.pauseTurret() || (Math.abs(Turret.modTurretOff) < 5));
         if (ready && transport){
             long time = System.nanoTime()%(2000*1000*1000);
             if (time < 500*1000*1000){
@@ -64,12 +65,12 @@ public class Autonomous {
             destPoints[2] = (4.034663*2-7.4247756)-0.1;
         }
         if (odox > (11.915394+4.62534)/2){
-            destPoints[0] = 11.915394;
-            if (odox < (11.915394+0.5)) destPoints[0] -= 1.0;
+            destPoints[0] = 11.915394+1.0;
+            if (odox < (11.915394+0.5)) destPoints[0] -= 2.0;
             destPoints[1] = 11.915394-2;
         }else{
-            destPoints[0] = 4.62534;
-            if (odox > (4.62534-0.5)) destPoints[0] += 1.0;
+            destPoints[0] = 4.62534-1.0;
+            if (odox > (4.62534-0.5)) destPoints[0] += 2.0;
             destPoints[1] = 4.62534+2;
         }
     }
@@ -91,69 +92,79 @@ public class Autonomous {
         }
     }
 
-    public static final Double speed = 1.0, endVeloMult = 0.3;
+    public static final Double speed = 1.0, endVeloMult = 0.3, shootTimeSec = 5.0;
     public static Integer autoState = 0;
     public static void shuttleAuto(){
-        //shootAuto();
-        Double driveAngle = (alliance == 'R')?80.0:-100.0;
+        shootAuto();
+        Double driveAngle = ((alliance == 'R')?80.0:100.0)*((destPoints[2] > 4.034663)?1.0:-1.0);
         switch(autoState){
             case 0:
+                if (ready) ++shootCnt;
+                if (shootFirst == false || shootCnt >= 50*shootTimeSec){
+                    shootCnt = 0;
+                    ++autoState;
+                }
+                break;
+            case 1:
                 enterNeutralPoints();
                 AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                 ++autoState;
-            case 1:
+            case 2:
                 if (AutoDrive.driveSpline()){
                     AutoDrive.setSpline(destPoints[1], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                     ++autoState;
                     Transport.setIntake(0.4);
                 }
                 break;
-            case 2:
+            case 3:
                 if (AutoDrive.driveSpline()){
                     AutoDrive.setSpline((14.552041+1.988947)/2, 4.034663-(destPoints[2]-4.034663)*0.6, 0.0, (destPoints[2]-4.034663)/2*endVeloMult, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 3:
+            case 4:
                 if (AutoDrive.driveSpline(-driveAngle)){
-                    Double xAdd = (alliance == 'R')?0.5:-0.5;
+                    Double xAdd = (alliance == 'R')?1.0:-1.0;
                     AutoDrive.setSpline((14.552041+1.988947)/2+xAdd, 4.034663+(destPoints[2]-4.034663)*0.6, 0.0, -(destPoints[2]-4.034663)/2*endVeloMult, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 4:
+            case 5:
                 if (AutoDrive.driveSpline(driveAngle)){
-                    Double xAdd = (alliance == 'R')?1.0:-1.0;
+                    Double xAdd = (alliance == 'R')?2.0:-2.0;
                     AutoDrive.setSpline((14.552041+1.988947)/2+xAdd, 4.034663-(destPoints[2]-4.034663)*0.6, 0.0, (destPoints[2]-4.034663)/2*endVeloMult, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 5:
+            case 6:
                 if (AutoDrive.driveSpline(-driveAngle)){
                     ++autoState;
                 }
                 break;
-            case 6:
+            case 7:
                 Transport.setIntake(0.0);
-                Driver_Controller.SwerveControlSet(false);
+                Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+                Driver_Controller.SwerveCommandXValue = 0.0;
+                Driver_Controller.SwerveCommandYValue = 0.0;
+                Driver_Controller.SwerveControlSet(true);
                 break;
         }
     }
 
     public static int shootCnt = 0;
     public static void outpostAuto(){
-        Double outpostA = ((alliance == 'B')?0.0:180);
+        Double outpostA = ((alliance == 'R')?0.0:180);
         switch(autoState){
             case 0:
-                shootAuto(true);
                 if (ready) ++shootCnt;
-                if (shootCnt >= 50*5){ // 5 seconds
+                if (shootFirst == false || shootCnt >= 50*shootTimeSec){ // 5 seconds
                     Double outpostX = ((alliance == 'R')?11.915394+4.62534-0.5:0.5),
                     outpostY = ((alliance == 'R')?(4.034663*2-0.5):0.5);
                     AutoDrive.setSpline(outpostX, outpostY, 0.0, 0.0, speed, 50);
                     shootCnt = 0;
                     ++autoState;
                 }
+                shootAuto(true);
                 break;
             case 1:
                 shootAuto(false);
@@ -181,17 +192,20 @@ public class Autonomous {
                 }
                 break;
             case 4:
-                Driver_Controller.SwerveControlSet(false);
+                Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+                Driver_Controller.SwerveCommandXValue = 0.0;
+                Driver_Controller.SwerveCommandYValue = 0.0;
+                Driver_Controller.SwerveControlSet(true);
                 shootAuto(true);
                 break;
         }
     }
 
     public static void intakeAuto(){
-        Double driveAngle = ((destPoints[2] < 4.034663)?-1:1)*((alliance == 'R')?80.0:-100.0);
+        Double driveAngle = ((destPoints[2] > 4.034663)?-1.0:1.0)*((alliance == 'R')?80.0:100.0);
         switch(autoState){
             case 0:
-                if (shootFirst == false || shootCnt >= 50*5){
+                if (shootFirst == false || shootCnt >= 50*shootTimeSec){
                     enterNeutralPoints();
                     AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                     shootCnt = 0;
@@ -253,7 +267,10 @@ public class Autonomous {
                 break;
             case 7:
                 shootAuto(true);
-                Driver_Controller.SwerveControlSet(false);
+                Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+                Driver_Controller.SwerveCommandXValue = 0.0;
+                Driver_Controller.SwerveCommandYValue = 0.0;
+                Driver_Controller.SwerveControlSet(true);
                 break;
         }
     }
@@ -261,7 +278,7 @@ public class Autonomous {
     public static void halfIntakeAuto(){
         switch(autoState){
             case 0:
-                if (shootFirst == false || shootCnt >= 50*5){
+                if (shootFirst == false || shootCnt >= 50*shootTimeSec){
                     enterNeutralPoints();
                     AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                     shootCnt = 0;
@@ -321,6 +338,53 @@ public class Autonomous {
                 }
                 break;
             case 7:
+                Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+                Driver_Controller.SwerveCommandXValue = 0.0;
+                Driver_Controller.SwerveCommandYValue = 0.0;
+                Driver_Controller.SwerveControlSet(true);
+                shootAuto(true);
+                break;
+        }
+    }
+
+    public static void depotAuto(){
+        Double depotA = ((alliance == 'R')?90.0:-90.0);
+        switch(autoState){
+            case 0:
+                if (ready) ++shootCnt;
+                if (shootCnt >= 50*shootTimeSec || shootFirst == false){ // 5 seconds
+                    Double depotX = ((alliance == 'R')?11.915394+4.62534-0.5:0.5),
+                    depotY = 4.034663*((alliance == 'R')?0.5:1.5);
+                    AutoDrive.setSpline(depotX, depotY, 0.0, ((alliance == 'R')?1.0:-1.0)*endVeloMult, speed, 50);
+                    shootCnt = 0;
+                    ++autoState;
+                }
+                shootAuto(true);
+                break;
+            case 1:
+                shootAuto(false);
+                if (AutoDrive.driveSpline(depotA)){
+                    Double desiredX = ((alliance == 'R')?
+                        Turret.redTargetX[2]+1.2:
+                        Turret.blueTargetX[2]-1.2),
+                    desiredY = Turret.TargetY[2] +
+                        ((alliance == 'R')?-1.2:1.2);
+                    AutoDrive.setSpline(desiredX, desiredY, 0.0, 0.0, speed, 50);
+                    ++autoState;
+                }
+                break;
+            case 2:
+                shootAuto(false);
+                shootAuto(false);
+                if (AutoDrive.driveSpline(depotA)){
+                    ++autoState;
+                }
+                break;
+            case 3:
+                Driver_Controller.SwerveCommandEncoderValue = ((RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360)-180;
+                Driver_Controller.SwerveCommandXValue = 0.0;
+                Driver_Controller.SwerveCommandYValue = 0.0;
+                Driver_Controller.SwerveControlSet(true);
                 shootAuto(true);
                 break;
         }
@@ -331,5 +395,6 @@ public class Autonomous {
         autoState = 0;
         shootCnt = 0;
         alliance = DriverStation.getAlliance().toString().charAt(9);
+        ready = false;
     }
 }

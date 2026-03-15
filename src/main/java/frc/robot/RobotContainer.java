@@ -56,6 +56,7 @@ public class RobotContainer {
     public RobotContainer() {
         autoChooser.addOption("stay, shoot", "stay, shoot");
         autoChooser.addOption("outpost", "outpost");
+        autoChooser.addOption("depot", "depot");
         autoChooser.addOption("intake, shoot", "intake, shoot");
         autoChooser.addOption("half-intake", "half-intake");
         autoChooser.setDefaultOption("shuttle", "shuttle");
@@ -102,11 +103,7 @@ public class RobotContainer {
             rotaryJoystickInput = Driver_Controller.SwerveEncoderPassthrough;
             wasCommandAngle = true;
         } else {
-            rotaryJoystickInput = Rotary_Controller.RotaryJoystick(Driver_Controller.m_Controller1); // Get input from
-                                                                                                     // the rotary
-                                                                                                     // controller (ID
-                                                                                                     // from
-                                                                                                     // m_controller1)
+            rotaryJoystickInput = Rotary_Controller.RotaryJoystick(Driver_Controller.m_Controller1); // Get input from the rotary controller (ID from m_controller1)
             if (wasCommandAngle || needToReset) {
                 rotaryOffset = (pigeonYaw + (360 * 1000)) % 360;
                 wasCommandAngle = false;
@@ -131,13 +128,13 @@ public class RobotContainer {
         }
 
         //Limit the power to a max of 7
-                                        
-        if (powerCurved < 8 && powerCurved > 2){
-            powerCurved = 8;// * ((powerCurved + 3)/ 10);
-        }
-        if (powerCurved > -8 && powerCurved < -2){
-            powerCurved = -8;// * ((Math.abs(powerCurved) + 3)/ 10);
-        }
+        powerCurved = Math.min(8.0, Math.max(-8.0, powerCurved));          
+        // if (powerCurved < 8 && powerCurved > 2){
+        //     powerCurved = 8;// * ((powerCurved + 3)/ 10);
+        // }
+        // if (powerCurved > -8 && powerCurved < -2){
+        //     powerCurved = -8;// * ((Math.abs(powerCurved) + 3)/ 10);
+        // }
         // Return a slightly lowered powercurved value (i.e. Slightly lowered turn speed)
         return powerCurved * 0.1;
     }
@@ -163,7 +160,6 @@ public class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        Driver_Controller.m_Controller0.a().whileTrue(drivetrain.applyRequest(() -> brake));
         Driver_Controller.needBrake.whileTrue(drivetrain.applyRequest(() -> brake));
     }
 }
