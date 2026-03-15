@@ -17,7 +17,8 @@ public class LED {
             }
         }
     }
-    public static char curPattern = 'w';
+    public static char curPattern = '0';
+    public static char curRange = '0';
 
     public static void setPattern(char newPattern){
         if (newPattern >= 'A' && newPattern <= 'Z'){ // if is a capital letter
@@ -31,6 +32,24 @@ public class LED {
             System.out.println(newPattern);
             try{
                 arduino.writeString(""+newPattern);
+            }catch(Exception e){
+                System.out.println("UH OH leds failed");
+            }
+        }
+    }
+
+    public static void giveRange(char newRange){
+        if (newRange >= 'A' && newRange <= 'Z'){ // if is a capital letter
+            newRange += 'a'-'A'; // change to lowercase
+        }
+        if (newRange >= 'a' && newRange <= 'z'){ // if is a latter
+            if (newRange == curRange){ // don't send the same pattern multiple times
+                return;
+            }
+            curRange = newRange;
+            System.out.println(newRange);
+            try{
+                arduino.writeString(""+newRange);
             }catch(Exception e){
                 System.out.println("UH OH leds failed");
             }

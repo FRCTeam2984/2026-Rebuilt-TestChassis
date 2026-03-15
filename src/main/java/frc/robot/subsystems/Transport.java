@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -13,28 +14,27 @@ public class Transport {
     public static TalonSRX transportMotor;
     public static TalonSRX intakeMotor;
     public static TalonSRX agitatorMotor;
-    public static Boolean intakeMotorWorking = false, transportMotorWorking = false, agitatorMotorWorking = false;
+    public static TalonFX spindexerMotor;
+    public static Boolean intakeMotorWorking = false, transportMotorWorking = false, agitatorMotorWorking = false, spindexerMotorWorking = false;
     public static Servo agitator1 = new Servo(Constants.agitator1ID), agitator2 = new Servo(Constants.agitator2ID);
 
     public static void initMotors(){
         try{
             transportMotor = new TalonSRX(Constants.transportID);
             transportMotorWorking = true;
-        }catch(Exception e){
-            System.out.println("no transport motor");
-        }
+        }catch(Exception e){}
         try{
             intakeMotor = new TalonSRX(Constants.intakeID);
             intakeMotorWorking = true;
-        }catch(Exception e){
-            System.out.println("no intake motor");
-        }
+        }catch(Exception e){}
         try{
             agitatorMotor = new TalonSRX(Constants.agitatorRedlineID);
             agitatorMotorWorking = true;
-        }catch(Exception e){
-            System.out.println("no agitator motor");
-        }
+        }catch(Exception e){}
+        try{
+            spindexerMotor = new TalonFX(Constants.spindexerFalconID);
+            spindexerMotorWorking = true;
+        }catch(Exception e){}
     }
     //public static RelativeEncoder encoder = neoMotor.getEncoder(); // creating an encoder for the motor called motor
     public static Double spinIntake(){
@@ -46,17 +46,29 @@ public class Transport {
             return 0.0;
         }
     }
+    public static Double[] powerArray = {0.2, 0.3, 0.4, 0.5};
+
     public static Double spinTransport(){
         agitate(Driver_Controller.transportSwitch() || Driver_Controller.buttonTransportReverse());
-        if (Driver_Controller.buttonTransportReverse())
-            return 0.5;
-        if (Driver_Controller.transportSwitch()){
-            if (System.nanoTime()%(2000*1000*1000) < 500*1000*1000){
-                return 0.5;
-            }
-            return -0.65;
-        }
+        if (Driver_Controller.buttonTransportReverse() || Driver_Controller.buttonShooterReverse())
+            return 0.25;
+        if (!Driver_Controller.runShooterSwitch())
             return 0.0;
+        if (Driver_Controller.transportSwitch()){
+            return -0.45-powerArray[Driver_Controller.kitchenStove()]; // 20:1 gearbox
+            //return 0.35; // 4:1 gearbox
+        }
+        return 0.0;
+    }
+    public static Double spindexerPower(){
+        if (Driver_Controller.buttonTransportReverse() || Driver_Controller.buttonShooterReverse())
+            return -0.2;
+        if (!Driver_Controller.runShooterSwitch())
+            return 0.0;
+        if (Driver_Controller.transportSwitch()){
+            return powerArray[Driver_Controller.kitchenStove()]/2;
+        }
+        return 0.0;
     }
 
     // the following two functions are to make sure that the same power setting is repeatedly sent to the motors
@@ -76,9 +88,24 @@ public class Transport {
         }
     }
 
+    public static Double prevSpindexerPower = 0.0;
+    public static void setSpindexer(Double power){
+        power = -power;
+        if (spindexerMotorWorking == false){
+            return;
+        }
+        // check if the next power is within 5 percent of the current one
+        if (((prevSpindexerPower-power)*20 > prevSpindexerPower)
+        || ((power-prevSpindexerPower)*20 > prevSpindexerPower)){
+            try{
+                spindexerMotor.set(power);
+                prevSpindexerPower = power;
+            }catch(Exception e){}
+        }
+    }
+
     public static Double prevTransportPower = 0.0;
     public static void setTransport(Double power){
-        power = -power;
         if (transportMotorWorking == false){
             return;
         }
@@ -93,27 +120,13 @@ public class Transport {
     }
 
     public static void agitate(Boolean isActive){
-        long time = System.nanoTime()/600/1000/1000;
-        long time_qsec = System.nanoTime()/250/1000/1000;
-        if ((prevIntakePower!=0.0) || (isActive)) {
-            if (((time_qsec&15)<=1 || prevTransportPower > 0 || prevIntakePower > 0) && !Driver_Controller.buttonTransportReverse())
-                agitatorMotor.set(TalonSRXControlMode.PercentOutput, 0.6);
+        if (isActive || (prevIntakePower != 0.0)) {
+            if ((Driver_Controller.transportSwitch() || prevIntakePower > 0) && !Driver_Controller.buttonTransportReverse())
+                agitatorMotor.set(TalonSRXControlMode.PercentOutput, 0.8);
             else
-                agitatorMotor.set(TalonSRXControlMode.PercentOutput, -0.6);
+                agitatorMotor.set(TalonSRXControlMode.PercentOutput, -0.8);
         } else {
             agitatorMotor.set(TalonSRXControlMode.PercentOutput, 0.0);
         }
-        /*
-        if (!isActive){
-            agitator1.set(0.5);
-            agitator2.set(0.5);
-            return;
-        }
-        agitator2.set(0.0);
-        if (time%2 == 0){
-            // agitator1.set(0.0);
-        }else{
-            // agitator1.set(1.0);
-        }*/
     }
 }
