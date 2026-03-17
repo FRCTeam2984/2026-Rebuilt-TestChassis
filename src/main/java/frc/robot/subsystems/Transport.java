@@ -46,7 +46,7 @@ public class Transport {
             return 0.0;
         }
     }
-    public static Double[] powerArray = {0.2, 0.3, 0.4, 0.5};
+    public static Double[] powerArray = {0.45, 0.6, 0.7, 0.85};
 
     public static Double spinTransport(){
         agitate(Driver_Controller.transportSwitch() || Driver_Controller.buttonTransportReverse());
@@ -55,7 +55,7 @@ public class Transport {
         if (!Driver_Controller.runShooterSwitch())
             return 0.0;
         if (Driver_Controller.transportSwitch()){
-            return -0.45-powerArray[Driver_Controller.kitchenStove()]; // 20:1 gearbox
+            return -powerArray[Driver_Controller.kitchenStove()]; // 20:1 gearbox
             //return 0.35; // 4:1 gearbox
         }
         return 0.0;
@@ -66,7 +66,7 @@ public class Transport {
         if (!Driver_Controller.runShooterSwitch())
             return 0.0;
         if (Driver_Controller.transportSwitch()){
-            return powerArray[Driver_Controller.kitchenStove()]/2;
+            return powerArray[Driver_Controller.kitchenStove()]/4.25;
         }
         return 0.0;
     }

@@ -278,7 +278,7 @@ public class Robot extends TimedRobot {
     Double[] power = {0.0, 0.0};
     if (Driver_Controller.runShooterSwitch()){
       power = Turret.speedController();
-      if (Turret.distance > 3.2){
+      if (Turret.distance > 2.5){
         LED.giveRange('f');
       }else{
         LED.giveRange('c');
