@@ -7,6 +7,8 @@ package frc.robot;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 
+import com.ctre.phoenix6.SignalLogger;
+
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -215,12 +217,13 @@ public class Robot extends TimedRobot {
   static Double[] curCowlSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   static Double[] curSpeedSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   static Double[] curOffsetSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
+  public static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
 
   static Boolean saveLastPressed = false;
 
   @Override
   public void teleopPeriodic() {
+    SignalLogger.stop();
     if (System.nanoTime()%100*1000*1000 > 70*1000*1000)Driver_Controller.kitchenStove();
     Double transportPower, intakePower, spinPower, spindexPow;
     Turret.calcDist();
@@ -304,6 +307,15 @@ public class Robot extends TimedRobot {
     transportPower = Transport.spinTransport();
     spindexPow = Transport.spindexerPower();
 
+    Double robotVeloX = RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond;
+    Double robotVeloY = RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond;
+    Double fieldDriveVeloAngle = Math.toDegrees(Math.atan2(robotVeloY, robotVeloX));
+    if (((Math.sin(Math.toRadians(Turret.targetAngleDeg-fieldDriveVeloAngle))
+      *Math.sqrt(Math.pow(robotVeloX , 2) + Math.pow(robotVeloY, 2))) > 0.5)  // driving away from hub
+      || (Math.sqrt(Math.pow(robotVeloX , 2) + Math.pow(robotVeloY, 2)) > 1.0)){  // driving any direction
+      transportPower = 0.0;
+    }
+
     // periodically (every 10 cycles) print out current data
     if (curIndexCowl == 0){
       System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f, speed=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
@@ -319,7 +331,7 @@ public class Robot extends TimedRobot {
       Turret.turretSpin.set(0.0);
     }else{
       Transport.setIntake(intakePower);
-      Transport.setTransport(transportPower);
+      Transport.setTransport(-transportPower);
       Transport.setSpindexer(spindexPow);
       Turret.shooter1.set(power[0]);
       Turret.shooter2.set(-power[1]);

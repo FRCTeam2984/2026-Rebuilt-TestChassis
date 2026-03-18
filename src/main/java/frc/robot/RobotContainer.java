@@ -128,7 +128,8 @@ public class RobotContainer {
         }
 
         //Limit the power to a max of 7
-        powerCurved = Math.min(8.0, Math.max(-8.0, powerCurved));          
+        final Double maxPow = 80.0;
+        powerCurved = Math.min(maxPow, Math.max(-maxPow, powerCurved));          
         // if (powerCurved < 8 && powerCurved > 2){
         //     powerCurved = 8;// * ((powerCurved + 3)/ 10);
         // }

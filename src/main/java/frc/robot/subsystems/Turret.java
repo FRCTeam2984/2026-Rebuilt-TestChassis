@@ -25,7 +25,7 @@ public class Turret {
     public static char encoderStatus = 's'; // at first, we don't know if the encoder is correct
     public static Double maxPower = 0.5, maxError = 1.0; // max power allowed to send and furthest the turret can be from ideal without sending any power
     public static Double[] blueTargetX = {1.988947, 1.988947, 4.62534}, TargetY = {2.0173315, 6.05119945, 4.034663}, redTargetX = {14.552041, 14.552041, 11.915394}; // coordinates for targets on the field
-    public static Double turretOffX = 0.23, // offset of the turret in meters from the center of the robot, forward is positive
+    public static Double turretOffX = -0.23, // offset of the turret in meters from the center of the robot, forward is positive
                          turretOffY = 0.0; // left is positive
     public static Double spinRatio = 32.0;
     public static Double turret_zero = 0.0;
@@ -51,6 +51,7 @@ public class Turret {
             System.out.println("no transport motor");
         }
     }
+    public static Integer update_time;
 
     public static Double desiredSpeed = 0.0, cowlAngle = 0.5, interpolatedTurretOffset = 0.0, targetAngleDeg = 0.0;
     public static void calcDist(){
@@ -71,15 +72,15 @@ public class Turret {
         Double fieldDriveVeloAngle = Math.atan2(robotVeloY, robotVeloX)+
             Math.toRadians(fieldRobotAngleDeg); // TODO, fixme: test for  both red and blue
         Double magnitude = Math.sqrt(Math.pow(robotVeloX, 2)+Math.pow(robotVeloY, 2));
-        final Double flightTime = 0.5; // 1/2 second flight time of the fuel
-        Double fieldVeloX = -magnitude*Math.sin(fieldDriveVeloAngle)*flightTime;
-        Double fieldVeloY = -magnitude*Math.cos(fieldDriveVeloAngle)*flightTime;
+        final Double flightTime = 0.75; // 1/2 second flight time of the fuel
+        Double fieldVeloX = magnitude*Math.cos(fieldDriveVeloAngle)*flightTime;
+        Double fieldVeloY = magnitude*Math.sin(fieldDriveVeloAngle)*flightTime;
         //System.out.printf("xVelo = %.3f, yVelo = %.3f\n", xVelo, yVelo);
 
         Double projectedOdoY = RobotContainer.drivetrain.getState().Pose.getY() + fieldVeloY;
         Double projectedOdoX = RobotContainer.drivetrain.getState().Pose.getX() + fieldVeloX;
         
-        final Double turretLagTime = 0.2; // turret lags behind by x seconds: TODO, fixme: this should be an interpolation table!!!
+        final Double turretLagTime = 0.15; // turret lags behind by x seconds: TODO, fixme: this should be an interpolation table!!!
         Double projectedOdoA = Math.toRadians(((
             fieldRobotAngleDeg+
             RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()*turretLagTime+ // degreesPerSec * lag(s) = pre-aiming
@@ -142,7 +143,7 @@ public class Turret {
         currentUpper = 1;
         while (upper.get(currentUpper)[0] < distance)
             {currentUpper++;}
-        Udist1 = lower.get(currentUpper);
+        Udist1 = upper.get(currentUpper);
         Ldist1 = upper.get(Math.max(1, currentUpper-1));
 
         Double[] Ldist2, Udist2;
@@ -153,10 +154,30 @@ public class Turret {
         Ldist2 = lower.get(Math.max(1, currentUpper-1));
 
         Double[] interpolated = new Double[3];
+ 
         for (int i = 1; i <= 3; ++i){
+
             Double temp1 = Udist1[i] - (Udist1[0]-distance)/(Udist1[0]-Ldist1[0])*(Udist1[i]-Ldist1[i]);
             Double temp2 = Udist2[i] - (Udist2[0]-distance)/(Udist2[0]-Ldist2[0])*(Udist2[i]-Ldist2[i]);
-            interpolated[i-1] = temp2 - (upper.get(0)[0]-targetAngleDeg)/(upper.get(0)[0]-lower.get(0)[0])*(temp2-temp1);
+            interpolated[i-1] = temp2 
+                //- (upper.get(0)[0]-targetAngleDeg)
+                - (targetAngleDeg - lower.get(0)[0])
+                /(upper.get(0)[0]-lower.get(0)[0])
+                *(temp2-temp1);
+            //if (((update_time++) & 7)==0)
+            if (false)
+                   System.out.printf("udist1 %f %f, udist2 %f %f, distance %f, targetAng %f %f %f, temp1 %f, temp2 %f, interp %f: %f %f %f %f\n",
+            Udist1[0], Udist1[i],
+            Udist2[0], Udist2[i],
+            distance,
+            targetAngleDeg,
+            upper.get(0)[0], lower.get(0)[0],
+            temp1, temp2, interpolated[i-1],
+            temp2 ,
+                - (upper.get(0)[0]-targetAngleDeg)
+                ,(upper.get(0)[0]-lower.get(0)[0])
+                ,(temp2-temp1)
+            );
         }
 
             // Incorporate Operator sliders.

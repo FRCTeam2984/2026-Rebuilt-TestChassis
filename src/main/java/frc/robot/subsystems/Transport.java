@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.Servo;
 import frc.robot.Constants;
 
 public class Transport {
-    public static TalonSRX transportMotor;
+    public static TalonFX transportMotor;
     public static TalonSRX intakeMotor;
     public static TalonSRX agitatorMotor;
     public static TalonFX spindexerMotor;
@@ -20,7 +20,7 @@ public class Transport {
 
     public static void initMotors(){
         try{
-            transportMotor = new TalonSRX(Constants.transportID);
+            transportMotor = new TalonFX(Constants.transportID);
             transportMotorWorking = true;
         }catch(Exception e){}
         try{
@@ -55,7 +55,7 @@ public class Transport {
         if (!Driver_Controller.runShooterSwitch())
             return 0.0;
         if (Driver_Controller.transportSwitch()){
-            return -powerArray[Driver_Controller.kitchenStove()]; // 20:1 gearbox
+            return -powerArray[Driver_Controller.kitchenStove()]/1.5; // 20:1 gearbox
             //return 0.35; // 4:1 gearbox
         }
         return 0.0;
@@ -113,7 +113,7 @@ public class Transport {
         if (((prevTransportPower-power)*20 > prevIntakePower)
         || ((power-prevTransportPower)*20 > prevIntakePower)){
             try{
-                transportMotor.set(TalonSRXControlMode.PercentOutput, power);
+                transportMotor.set(power);
                 prevTransportPower = power;
             }catch(Exception e){}
         }
