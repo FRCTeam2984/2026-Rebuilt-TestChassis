@@ -59,9 +59,10 @@ public class RobotContainer {
         autoChooser.addOption("depot", "depot");
         autoChooser.addOption("intake, shoot", "intake, shoot");
         autoChooser.addOption("half-intake", "half-intake");
-        autoChooser.setDefaultOption("shuttle", "shuttle");
+        autoChooser.setDefaultOption("half+return", "half+return");
+        autoChooser.addOption("shuttle", "shuttle");
 
-        idleShooterSelector.addOption("keep shooters fast", true);
+        idleShooterSelector.addOption("keep shooters fast", false);
         idleShooterSelector.setDefaultOption("no shooter while intaking", false);
 
         shootFirstSelector.addOption("shoot before intake", true);
@@ -148,7 +149,7 @@ public class RobotContainer {
             drivetrain.applyRequest(() ->
             drive.withVelocityX(Driver_Controller.SwerveXPassthrough) // Drive forward with negative Y (forward)
                     .withVelocityY(Driver_Controller.SwerveYPassthrough) // Drive left with negative X (left)
-                    .withRotationalRate(rotaryCalc(false) * MaxAngularRate * TurnModifier) // Drive counterclockwise with negative X (left)
+                    .withRotationalRate(rotaryCalc(false)* MaxAngularRate * TurnModifier) // Drive counterclockwise with negative X (left)
             )
         );
 
