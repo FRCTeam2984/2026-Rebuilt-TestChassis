@@ -64,13 +64,13 @@ public class Driver_Controller {
 
 public static Boolean buttonBrake(){
     return m_Controller1.getRawButton(1);}
-public static Boolean buttonAngleAdjust(){
+public static Boolean buttonLimitShuttle(){
     return m_Controller1.getRawButton(2);}
 public static Boolean flipDrive(){
     return m_Controller1.getRawButton(3);}
 public static Boolean visionSwitch(){
     return m_Controller1.getRawButton(4);}
-public static Boolean buttonSaveData(){
+public static Boolean buttonRestrictTransport(){
     return m_Controller1.getRawButton(5);}
 
 public static Double upperDriverSlider(){
@@ -96,7 +96,7 @@ public static Boolean intakeSwitch(){
     return switch4();}
 
 public static Double cowlSlider(){
-    return 0.38*(1+Driver_Controller.lowerDriverSlider());}//m_Controller3.getRawAxis(4)
+    return 0.22+(1.0-0.275-0.22)/2*(1+m_Controller3.getRawAxis(4));}//Driver_Controller.lowerDriverSlider()   0.24+0.2835*(1-m_Controller3.getRawAxis(4));}//.24 to .807
 public static Double shooterSpeedSlider(){
     return 35+25*m_Controller3.getRawAxis(3);}
 public static Double offsetSlider(){

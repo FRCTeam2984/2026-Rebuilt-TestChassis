@@ -47,9 +47,7 @@ public class Turret {
             turretSpin = new SparkMax(Constants.turretSpinID, MotorType.kBrushless);
             turretEncoder = turretSpin.getEncoder();
             spinMotorWorking = true;
-        }catch(Exception e){
-            System.out.println("no transport motor");
-        }
+        }catch(Exception e){}
     }
     public static Integer update_time;
 
@@ -72,7 +70,7 @@ public class Turret {
         Double fieldDriveVeloAngle = Math.atan2(robotVeloY, robotVeloX)+
             Math.toRadians(fieldRobotAngleDeg); // TODO, fixme: test for  both red and blue
         Double magnitude = Math.sqrt(Math.pow(robotVeloX, 2)+Math.pow(robotVeloY, 2));
-        final Double flightTime = 0.75; // 1/2 second flight time of the fuel
+        final Double flightTime = 1.10; // 1/2 second flight time of the fuel
         Double fieldVeloX = magnitude*Math.cos(fieldDriveVeloAngle)*flightTime;
         Double fieldVeloY = magnitude*Math.sin(fieldDriveVeloAngle)*flightTime;
         //System.out.printf("xVelo = %.3f, yVelo = %.3f\n", xVelo, yVelo);
@@ -84,7 +82,7 @@ public class Turret {
         Double projectedOdoA = Math.toRadians(((
             fieldRobotAngleDeg+
             RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()*turretLagTime+ // degreesPerSec * lag(s) = pre-aiming
-            360*10000 + 180)%360));
+            360*132300 + 180)%360));
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
@@ -122,7 +120,7 @@ public class Turret {
             // If robot is in the neutral zone OR far alliance zone:
         if ((Robot.alliance == 'B' && projectedOdoX > blueTargetX[2]) || (Robot.alliance == 'R' && projectedOdoX < redTargetX[2])){
             interpolatedTurretOffset = ((Driver_Controller.useOffsets())?Driver_Controller.offsetSlider():0.0);
-            desiredSpeed = 50.0;
+            desiredSpeed = (Driver_Controller.buttonLimitShuttle()?20.0:50.0);
             cowlAngle = 0.0;
             modTurretOff = 180 - (turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;
             return;
@@ -184,8 +182,13 @@ public class Turret {
         if (!Driver_Controller.manualSwitch())interpolatedTurretOffset = interpolated[2];
         if (Driver_Controller.useOffsets()) interpolatedTurretOffset += Driver_Controller.offsetSlider();
         desiredSpeed = interpolated[1];
+        desiredSpeed -= 10;
         if (Driver_Controller.useOffsets()) desiredSpeed += Driver_Controller.shooterOffsetSlider();
+        //desiredSpeed = Math.min(60.0, desiredSpeed);
         cowlAngle = interpolated[0];
+        if (Driver_Controller.useOffsets()) cowlAngle -= 
+            0.2835*Driver_Controller.m_Controller3.getRawAxis(4);
+        cowlAngle = Math.max(.24, Math.min(.807, cowlAngle+0.04));
         desiredSpeed = Math.max(10.0, Math.min(60.0, desiredSpeed));
 
         modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
@@ -352,7 +355,7 @@ public class Turret {
         d = accel*(-0.015);
         Double power1 = Math.min(1.0, Math.max(0.0, p+curPower[0]+d));
 
-        if (velocity < desiredSpeed*0.95 || velocity > desiredSpeed*1.1)
+        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.1)
             close = false;
 
         avgSpeed = velocity/2;
@@ -372,7 +375,7 @@ public class Turret {
         d = accel*(-0.015);
         Double power2 = Math.min(1.0, Math.max(0.0, p+curPower[1]+d));
 
-        if (velocity < desiredSpeed*0.95 || velocity > desiredSpeed*1.1)
+        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.1)
             close = false;
         
         if (close){

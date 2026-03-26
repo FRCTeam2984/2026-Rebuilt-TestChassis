@@ -41,7 +41,7 @@ public class Transport {
         if (Driver_Controller.buttonIntakeReverse()){
             return -0.4;
         }else if(Driver_Controller.intakeSwitch()){
-            return 0.4;//TODO FIXME
+            return 0.6;//TODO FIXME
         }else{
             return 0.0;
         }
@@ -55,7 +55,7 @@ public class Transport {
         if (!Driver_Controller.runShooterSwitch())
             return 0.0;
         if (Driver_Controller.transportSwitch()){
-            return -powerArray[Driver_Controller.kitchenStove()]/1.5; // 20:1 gearbox
+            return -powerArray[Driver_Controller.kitchenStove()]/1; // 1.5 and 1.3 still has balls get stuck, 5:1 gearbox
             //return 0.35; // 4:1 gearbox
         }
         return 0.0;
