@@ -4,6 +4,10 @@
 
 package frc.robot;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.util.ArrayList;
+
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 
@@ -93,6 +97,7 @@ public class Robot extends TimedRobot {
     }
   }
   String auto = "stay, shoot";
+  
   @Override
   public void autonomousInit() {
     RobotContainer.rotaryCalc(true);
@@ -200,9 +205,11 @@ public class Robot extends TimedRobot {
     }
   }
 
-
+  public static BufferedWriter fileWriter;
   @Override
   public void teleopInit() {
+    try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
+    cnt = 0;
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
     System.out.println(DriverStation.getAlliance().toString());
     Driver_Controller.define_Controller();
@@ -214,7 +221,7 @@ public class Robot extends TimedRobot {
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
   }
 
-  static int cnt = 0;
+  public static int cnt = 0;
   public static int autoState;
   Double angle = 45.0;
 
@@ -223,8 +230,8 @@ public class Robot extends TimedRobot {
   static Double[] curOffsetSlider = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   public static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
 
-  static Boolean saveLastPressed = false;
-  public static Boolean recentClose = false, recentPressed = false, startedOutRange = false;
+  static Boolean saveLastPressed = false, recentClose = false, recentPressed = false, startedOutRange = false;
+  public static Double prevDesired = 0.0;
 
   @Override
   public void teleopPeriodic() {
@@ -263,8 +270,8 @@ public class Robot extends TimedRobot {
     spindexPow = Transport.spindexerPower();
     transportPower = Transport.spinTransport();
 
-    if (Turret.inAlliance)
-    Turret.desiredSpeed = Math.min(Math.max(10, 60-20*(Turret.distance-2.5)), Turret.desiredSpeed);
+    // if (Turret.inAlliance)
+    // Turret.desiredSpeed = Math.min(Math.max(10, 60-20*(Turret.distance-2.5)), Turret.desiredSpeed);
     // get shooter power and set LEDs
     if (Driver_Controller.manualSwitch())Turret.desiredSpeed = averageSpeed;
     if (Driver_Controller.manualSwitch())Turret.cowlAngle = averageCowl;
@@ -274,20 +281,20 @@ public class Robot extends TimedRobot {
     if (Driver_Controller.runShooterSwitch()){
       if (Turret.distance > 2.5){
         if (!recentPressed) startedOutRange = true;
-        LED.giveRange('f');
+        LED.giveRange("far");
         if (!startedOutRange){
           recentClose = false;
           transportPower = 0.0;
           spindexPow  = 0.0;
         }
       }else{
-        LED.giveRange('c');
+        LED.giveRange("close");
       }
       power = Turret.speedController();
     }else{
       if (!recentPressed) startedOutRange = false;
       recentClose = false;
-      LED.giveRange('d');
+      LED.giveRange("hide");
       Turret.avgSpeed = 0.0;
       if (Driver_Controller.buttonShooterReverse()){
         power[0] = -0.15;
@@ -320,6 +327,11 @@ public class Robot extends TimedRobot {
     if (curIndexCowl == 0){
       System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f, speed=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
     }
+
+    // ++cnt;
+    // Double rate = prevDesired-Turret.targetAngleDeg, error = Turret.modTurretOff;
+    // try{fileWriter.write(cnt+", "+rate+", "+error);fileWriter.newLine();}catch(Exception e){System.out.println("fail");e.printStackTrace();};
+    prevDesired = Turret.targetAngleDeg;
     // Turret.servo1.set((1.0+Driver_Controller.m_Controller3.getRawAxis(4))/2.0);
     // Turret.servo2.set((1.0+Driver_Controller.m_Controller3.getRawAxis(3))/2.0);
     // Turret.servoInverted.set((1.0+Driver_Controller.m_Controller3.getRawAxis(1))/2.0);

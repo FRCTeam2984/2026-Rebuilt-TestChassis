@@ -115,6 +115,7 @@ public class Turret {
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrTargetX , 2) + Math.pow(turrTargetY, 2)); // pythagorean theorum
+        Double prevAngle = targetAngleDeg;
         targetAngleDeg = (15380*360-Math.toDegrees(Math.atan2(turrTargetX, turrTargetY)+projectedOdoA)+((Driver_Controller.flipDrive())?180.0:0.0)-180)%360-180;
         Double turretErrorDeg = targetAngleDeg - turretAngleDeg;
 
@@ -194,7 +195,11 @@ public class Turret {
         cowlAngle = Math.max(.24, Math.min(.807, cowlAngle+0.04));
         desiredSpeed = Math.max(10.0, Math.min(60.0, desiredSpeed));
 
-        modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
+        Double errorFix = 5*(prevAngle-targetAngleDeg);
+        if (errorFix > 5*180) errorFix -= 5*360;
+        if (errorFix < -5*180) errorFix += 5*360;
+        try{Robot.fileWriter.write((Robot.cnt++)+", "+errorFix/5+", "+(180-(turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360));Robot.fileWriter.newLine();}catch(Exception e){System.out.println("fail");e.printStackTrace();};
+        modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset - errorFix + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
         //System.out.println(modTurretOff);
         }catch (Exception e){}
     }
@@ -212,7 +217,7 @@ public class Turret {
         Double speedCompensation = 0.1*maxAdjust*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;
         power += speedCompensation;
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
-        return -power/2;
+        return -power/1.5;
     }
     
     public static Double resetEncoder(){
