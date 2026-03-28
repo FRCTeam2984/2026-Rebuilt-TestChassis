@@ -52,6 +52,7 @@ public class Turret {
     public static Integer update_time;
 
     public static Double desiredSpeed = 0.0, cowlAngle = 0.5, interpolatedTurretOffset = 0.0, targetAngleDeg = 0.0;
+    public static Boolean inAlliance = false;
     public static void calcDist(){
             // calculate the effective distance and angle to the hub while the robot is stationary OR moving/turning
             // outputs (all from interpolation table):
@@ -117,15 +118,17 @@ public class Turret {
         targetAngleDeg = (15380*360-Math.toDegrees(Math.atan2(turrTargetX, turrTargetY)+projectedOdoA)+((Driver_Controller.flipDrive())?180.0:0.0)-180)%360-180;
         Double turretErrorDeg = targetAngleDeg - turretAngleDeg;
 
+
             // If robot is in the neutral zone OR far alliance zone:
         if ((Robot.alliance == 'B' && projectedOdoX > blueTargetX[2]) || (Robot.alliance == 'R' && projectedOdoX < redTargetX[2])){
             interpolatedTurretOffset = ((Driver_Controller.useOffsets())?Driver_Controller.offsetSlider():0.0);
-            desiredSpeed = (Driver_Controller.buttonLimitShuttle()?20.0:50.0);
+            desiredSpeed = Math.max(10.0, Math.min(60.0, (Driver_Controller.buttonLimitShuttle()?20.0:50.0)+0*Driver_Controller.shooterOffsetSlider()));
             cowlAngle = 0.0;
             modTurretOff = 180 - (turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;
+            inAlliance = true;
             return;
         }
-
+        inAlliance = false;
         //distance += 1.0;
 
             // *********************
@@ -205,11 +208,9 @@ public class Turret {
         }
         
         Double minSpeed = 600.0;//TODO FIXME rpm
-	    //if (Math.abs(turretEncoder.getVelocity()) < minSpeed){ // if the motor is slow, make it faster
-            Double maxAdjust = Math.min(1.0, Math.max(-1.0, modTurretOff/maxPowDist)); // the desired max speed changes based on our distance
-            Double speedCompensation = 0.1*maxAdjust*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;
-            power += speedCompensation;
-        //}
+        Double maxAdjust = Math.min(1.0, Math.max(-1.0, modTurretOff/maxPowDist)); // the desired max speed changes based on our distance
+        Double speedCompensation = 0.1*maxAdjust*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;
+        power += speedCompensation;
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
         return -power/2;
     }
@@ -355,7 +356,7 @@ public class Turret {
         d = accel*(-0.015);
         Double power1 = Math.min(1.0, Math.max(0.0, p+curPower[0]+d));
 
-        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.1)
+        if (velocity < desiredSpeed*0.9 || velocity > desiredSpeed*1.1)
             close = false;
 
         avgSpeed = velocity/2;
@@ -375,7 +376,7 @@ public class Turret {
         d = accel*(-0.015);
         Double power2 = Math.min(1.0, Math.max(0.0, p+curPower[1]+d));
 
-        if (velocity < desiredSpeed*0.8 || velocity > desiredSpeed*1.1)
+        if (velocity < desiredSpeed*0.9 || velocity > desiredSpeed*1.1)
             close = false;
         
         if (close){

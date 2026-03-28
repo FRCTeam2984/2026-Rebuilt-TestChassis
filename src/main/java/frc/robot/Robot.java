@@ -95,7 +95,7 @@ public class Robot extends TimedRobot {
   String auto = "stay, shoot";
   @Override
   public void autonomousInit() {
-    m_robotContainer.rotaryCalc(true);
+    RobotContainer.rotaryCalc(true);
     Autonomous.reset();
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
     //m_autonomousCommand = m_robotContainer.getAutonomousCommand();
@@ -209,7 +209,7 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    m_robotContainer.rotaryCalc(true);
+    RobotContainer.rotaryCalc(true);
     Driver_Controller.SwerveControlSet(false);
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
   }
@@ -224,7 +224,7 @@ public class Robot extends TimedRobot {
   public static int curIndexCowl = 0, curIndexSpeed = 0, curOffsetIndex = 0;
 
   static Boolean saveLastPressed = false;
-  public static Boolean recentClose = false;
+  public static Boolean recentClose = false, recentPressed = false, startedOutRange = false;
 
   @Override
   public void teleopPeriodic() {
@@ -247,10 +247,6 @@ public class Robot extends TimedRobot {
     curIndexCowl = (curIndexCowl+1)%10;
     curOffsetIndex = (curOffsetIndex+1)%10;
 
-    if (Driver_Controller.manualSwitch())Turret.desiredSpeed = averageSpeed;
-    if (Driver_Controller.manualSwitch())Turret.cowlAngle = averageCowl;
-    if (Driver_Controller.manualSwitch())Turret.interpolatedTurretOffset = averageOffset;
-
     // reset the turret/get power
     if (Driver_Controller.buttonResetTurret()){
       Turret.encoderStatus = 's';
@@ -267,21 +263,29 @@ public class Robot extends TimedRobot {
     spindexPow = Transport.spindexerPower();
     transportPower = Transport.spinTransport();
 
+    if (Turret.inAlliance)
     Turret.desiredSpeed = Math.min(Math.max(10, 60-20*(Turret.distance-2.5)), Turret.desiredSpeed);
     // get shooter power and set LEDs
+    if (Driver_Controller.manualSwitch())Turret.desiredSpeed = averageSpeed;
+    if (Driver_Controller.manualSwitch())Turret.cowlAngle = averageCowl;
+    if (Driver_Controller.manualSwitch())Turret.interpolatedTurretOffset = averageOffset;
     Double[] power = {0.0, 0.0};
     recentClose |= Turret.close;
     if (Driver_Controller.runShooterSwitch()){
       if (Turret.distance > 2.5){
+        if (!recentPressed) startedOutRange = true;
         LED.giveRange('f');
-        recentClose = false;
-        transportPower = 0.0;
-        spindexPow  = 0.0;
+        if (!startedOutRange){
+          recentClose = false;
+          transportPower = 0.0;
+          spindexPow  = 0.0;
+        }
       }else{
         LED.giveRange('c');
       }
       power = Turret.speedController();
     }else{
+      if (!recentPressed) startedOutRange = false;
       recentClose = false;
       LED.giveRange('d');
       Turret.avgSpeed = 0.0;
@@ -297,11 +301,13 @@ public class Robot extends TimedRobot {
         LED.setPattern("warn");
       }
     }
+    recentPressed = Driver_Controller.runShooterSwitch();
 
+    // restrict transport if in alliance zone, a toggle, and fast9
     Double robotVeloX = RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond;
     Double robotVeloY = RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond;
     Double fieldDriveVeloAngle = Math.toDegrees(Math.atan2(robotVeloY, robotVeloX));
-    if ((!Driver_Controller.buttonRestrictTransport()) && ((((Math.sin(Math.toRadians(Turret.targetAngleDeg-fieldDriveVeloAngle))
+    if (Driver_Controller.buttonRestrictTransport() && Turret.inAlliance && ((((Math.sin(Math.toRadians(Turret.targetAngleDeg-fieldDriveVeloAngle))
       *Math.sqrt(Math.pow(robotVeloX , 2) + Math.pow(robotVeloY, 2))) > 0.5)  // driving away from hub
       || (Math.sqrt(Math.pow(robotVeloX , 2) + Math.pow(robotVeloY, 2)) > 1.0)
       || Math.abs(RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) > 90)
@@ -314,7 +320,6 @@ public class Robot extends TimedRobot {
     if (curIndexCowl == 0){
       System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f, speed=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
     }
-
     // Turret.servo1.set((1.0+Driver_Controller.m_Controller3.getRawAxis(4))/2.0);
     // Turret.servo2.set((1.0+Driver_Controller.m_Controller3.getRawAxis(3))/2.0);
     // Turret.servoInverted.set((1.0+Driver_Controller.m_Controller3.getRawAxis(1))/2.0);
@@ -334,7 +339,6 @@ public class Robot extends TimedRobot {
       Turret.shooter1.set(power[0]);
       Turret.shooter2.set(-power[1]);
       Turret.turretSpin.set(spinPower);
-      System.out.println(Turret.cowlAngle);
       Turret.servo1.set(Turret.cowlAngle); // axis 4 at +0.29 -> .645 
       Turret.servo2.set(Turret.cowlAngle-0.24); // axis 3 at -0.19 -> .405 Servoangle-.24
       Turret.servoInverted.set(1.275-Turret.cowlAngle); // axis 1 at +0.26 -> .63, 1.275-Servoangle

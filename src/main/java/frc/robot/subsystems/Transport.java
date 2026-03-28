@@ -66,7 +66,7 @@ public class Transport {
         if (!Driver_Controller.runShooterSwitch())
             return 0.0;
         if (Driver_Controller.transportSwitch()){
-            return powerArray[Driver_Controller.kitchenStove()]/4.25;
+            return powerArray[Driver_Controller.kitchenStove()]/6;//4.25;
         }
         return 0.0;
     }
