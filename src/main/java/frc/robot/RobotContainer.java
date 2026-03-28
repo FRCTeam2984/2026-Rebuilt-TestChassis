@@ -36,12 +36,13 @@ import frc.robot.Constants;
 public class RobotContainer {
     public static boolean wasCommandAngle = false, needToReset = true;
     public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
-    private double TurnModifier = 0.2;
+    public static double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    public static double TurnModifier = 0.2;
     private static double rotaryOffset = 0;
     /* Setting up bindings for necessary control of the swerve drive platform */
+    public static Double deadbandV = MaxSpeed * 0.1/5, angDeadband = MaxAngularRate * 0.1;
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-            .withDeadband(MaxSpeed * 0.1/5).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+            .withDeadband(deadbandV).withRotationalDeadband(angDeadband) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
@@ -95,7 +96,7 @@ public class RobotContainer {
         return returnValue;
     }
 
-    public double rotaryCalc(Boolean resetToRobot){
+    public static double rotaryCalc(Boolean resetToRobot){
         double pigeonYaw = drivetrain.getPigeon2().getYaw().getValueAsDouble();
         //pigeonYaw = ((drivetrain.getState().Pose.getRotation().getDegrees()+ 360*1000 + 180)%360);
         double rotaryJoystickInput;    //Define the variable rotaryJoystickInput as a double
@@ -105,7 +106,7 @@ public class RobotContainer {
             wasCommandAngle = true;
         } else {
             rotaryJoystickInput = Rotary_Controller.RotaryJoystick(Driver_Controller.m_Controller1); // Get input from the rotary controller (ID from m_controller1)
-            if (wasCommandAngle || needToReset) {
+            if (wasCommandAngle || needToReset || resetToRobot) {
                 rotaryOffset = (pigeonYaw + (360 * 1000)) % 360;
                 wasCommandAngle = false;
                 rotaryOffset = (rotaryOffset - rotaryJoystickInput);
@@ -156,6 +157,7 @@ public class RobotContainer {
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
         final var idle = new SwerveRequest.Idle();
+        
         RobotModeTriggers.disabled().whileTrue(
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );

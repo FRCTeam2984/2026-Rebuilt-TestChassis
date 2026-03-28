@@ -96,11 +96,11 @@ public static Boolean intakeSwitch(){
     return switch4();}
 
 public static Double cowlSlider(){
-    return 0.22+(1.0-0.275-0.22)/2*(1+m_Controller3.getRawAxis(4));}//Driver_Controller.lowerDriverSlider()   0.24+0.2835*(1-m_Controller3.getRawAxis(4));}//.24 to .807
+    return 0.22+(1.0-0.107-0.22)/2*(1+m_Controller3.getRawAxis(4));}//Driver_Controller.lowerDriverSlider()   0.24+0.2835*(1-m_Controller3.getRawAxis(4));}//.24 to .807
 public static Double shooterSpeedSlider(){
-    return 35+25*m_Controller3.getRawAxis(3);}
+    return 32+25*m_Controller3.getRawAxis(3);}
 public static Double offsetSlider(){
-    return 90*m_Controller3.getRawAxis(1);}
+    return 29.84*m_Controller3.getRawAxis(1);}
 
 public static Boolean useOffsets(){
     return m_Controller3.getRawButton(1);}
@@ -117,7 +117,14 @@ public static Boolean buttonResetTurret(){
 
 public static Boolean buttonEBrake(){
     return (m_Controller2.getRawButton(1) || m_Controller1.getRawButton(6));}
-public static Trigger needBrake = new Trigger(() -> (buttonEBrake() || buttonBrake()));
+
+public static Boolean withinDeadBand(){
+    boolean button = buttonBrake(),
+      notMove = Math.sqrt(SwerveXPassthrough*SwerveXPassthrough+SwerveYPassthrough*SwerveYPassthrough)<RobotContainer.deadbandV,
+      notSpin = Math.abs(RobotContainer.rotaryCalc(false)* RobotContainer.MaxAngularRate * RobotContainer.TurnModifier) < RobotContainer.angDeadband;
+    return button && notMove && notSpin;
+}
+public static Trigger needBrake = new Trigger(() -> (buttonEBrake() || withinDeadBand()));
 
 public static Double shooterOffsetSlider(){
     return 20*m_Controller3.getRawAxis(3);}
@@ -146,6 +153,7 @@ public  double joystick_curve(double joy) {
 }
 public double[] betterJoystickCurve(double x, double y) {
     double radius = Math.sqrt((x*x)+(y*y));
+    System.out.println(radius);
     double angle = Math.atan2(y, x);
     radius = joystick_curve(radius);
     double[] returnValue = {Math.sin(angle)*radius, Math.cos(angle)*radius};
@@ -161,6 +169,7 @@ public static void SwerveControlSet(boolean command){
     SwerveCommandControl = command;
     SwerveInputPeriodic();
 }
+
 public static void SwerveInputPeriodic(){
     if (SwerveCommandControl){ // Command Mode
         SwerveEncoderPassthrough = SwerveCommandEncoderValue-pigeonOffset;
@@ -172,6 +181,8 @@ public static void SwerveInputPeriodic(){
         //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
         SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult*((flipDrive())?-1.0:1.0);
         SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult*((flipDrive())?-1.0:1.0);
+        // withinDeadBand = (buttonBrake() && !((Math.sqrt(SwerveXPassthrough*SwerveXPassthrough+SwerveYPassthrough*SwerveYPassthrough)<RobotContainer.deadbandV)
+        //     || (RobotContainer.rotaryCalc(false)* RobotContainer.MaxAngularRate * RobotContainer.TurnModifier < RobotContainer.angDeadband)));
         SwerveEncoderPassthrough = Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough));
         //System.out.println(Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough)));
         //SwerveXPassthrough = -m_Controller0.getLeftY();
