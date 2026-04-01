@@ -1,11 +1,8 @@
 /*#include <Adafruit_NeoPixel.h>
 
 #define LED_PIN 9
-#define LED_COUNT 144
+#define LED_COUNT 144//159
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-
-bool shooterInRange = false;
-bool shooterRangeInUse = false;
 
 void setup() {
   strip.begin();
@@ -16,22 +13,6 @@ void setup() {
 char pattern = 's';
 
 void loop() {
-  if (shooterRangeInUse){
-    for(int i=0; i<strip.numPixels()/4; i++) {
-      if (shooterInRange){
-        strip.setPixelColor(i, strip.Color(0, 255, 0));
-      }else{
-        strip.setPixelColor(i, strip.Color(255, 100, 0));
-      }
-    }
-    for(int i=(strip.numPixels()*3)/4; i<strip.numPixels(); i++) {
-      if (shooterInRange){
-        strip.setPixelColor(i, strip.Color(0, 255, 0));
-      }else{
-        strip.setPixelColor(i, strip.Color(255, 100, 0));
-      }
-    }
-  }
   strip.show();
   delay(20);
 
@@ -69,20 +50,6 @@ void loop() {
         pattern = newPattern;
         for(int i=0; i<strip.numPixels(); i++)
           strip.setPixelColor(i, strip.Color(255, 0, 0));
-        break;
-
-      case 'c'://we are close in range
-        shooterInRange = true;
-        shooterRangeInUse = true;
-        break;
-
-      case 'f'://we are far in range
-        shooterInRange = false;
-        shooterRangeInUse = true;
-        break;
-
-      case 'd'://we are not using range LED
-        shooterRangeInUse = false;
         break;
     }
     return;
