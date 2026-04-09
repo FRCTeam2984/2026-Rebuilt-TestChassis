@@ -98,7 +98,10 @@ public static Boolean intakeSwitch(){
 public static Double cowlSlider(){
     return 0.22+(1.0-0.107-0.22)/2*(1+m_Controller3.getRawAxis(4));}//Driver_Controller.lowerDriverSlider()   0.24+0.2835*(1-m_Controller3.getRawAxis(4));}//.24 to .807
 public static Double shooterSpeedSlider(){
-    return 32+25*m_Controller3.getRawAxis(3);}
+    Double lowestPower = 10.0, highestPower = 30.0;
+    return lowestPower+
+    ((highestPower-lowestPower)*(1+m_Controller3.getRawAxis(3))/2);
+}
 public static Double offsetSlider(){
     return 29.84*m_Controller3.getRawAxis(1);}
 
@@ -132,7 +135,7 @@ public static Double shooterOffsetSlider(){
 public static int kitchenStove(){
     int num = (m_Controller2.getRawButton(11)?1:0)+(m_Controller2.getRawButton(10)?2:0)+(m_Controller2.getRawButton(9)?3:0)+(m_Controller2.getRawButton(12)?6:0);
     num = 11-((num+6)%12);
-    return ((num>3)?2:num);
+    return ((num>7)?7:num);
 }
 
 

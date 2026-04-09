@@ -17,37 +17,31 @@ void loop() {
   delay(20);
 
   if (Serial.available() > 0) {
-    char newPattern = Serial.read();
+    pattern = Serial.read();
     switch(pattern){
       case 'w'://rainbow pattern
-        pattern = newPattern;
         patternRainbow();
         break;
 
       case 'e'://yellow/red error pattern
-        pattern = newPattern;
         patternError();
         break;
 
       case 's'://starting up code pattern
-        pattern = newPattern;
         patternStarting();
         break;
 
       case 'a'://yellow need apriltag
-        pattern = newPattern;
         for(int i=0; i<strip.numPixels(); i++)
           strip.setPixelColor(i, strip.Color(255, 160, 0));
         break;
 
       case 'b'://blue
-        pattern = newPattern;
         for(int i=0; i<strip.numPixels(); i++)
           strip.setPixelColor(i, strip.Color(0, 0, 255));
         break;
       
       case 'r'://red
-        pattern = newPattern;
         for(int i=0; i<strip.numPixels(); i++)
           strip.setPixelColor(i, strip.Color(255, 0, 0));
         break;

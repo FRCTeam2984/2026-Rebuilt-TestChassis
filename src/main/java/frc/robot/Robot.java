@@ -13,6 +13,7 @@ import org.photonvision.PhotonPoseEstimator;
 
 import com.ctre.phoenix6.SignalLogger;
 
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -27,6 +28,7 @@ public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
   private Vision vision, vision2;
   public final RobotContainer m_robotContainer;
+  public static BufferedWriter fileWriter;
 
   public Robot() {
     m_robotContainer = new RobotContainer();
@@ -34,7 +36,6 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     LED.assignPort();
-    LED.giveRange('d');
     Turret.readFiles();
     Transport.initMotors();
     Turret.initMotors();
@@ -57,10 +58,12 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {
-    if ((vision.camera.isConnected() && vision2.camera.isConnected()) == false){
-      LED.setPattern('e');
+    if (((System.nanoTime()/(1000*1000*1000))%2 == 1) && (!Turret.resettingSensor.get())){
+      LED.setPattern("red");
+    }else if ((vision.camera.isConnected() && vision2.camera.isConnected()) == false){
+      LED.setPattern('e'); // don't have cameras
     }else if (vision.seenTags || vision2.seenTags){
-      LED.setPattern("rainbow");
+      LED.setPattern("rainbow"); // either camera seeing good stuff
     }else{
       LED.setPattern("warn");
     }
@@ -100,6 +103,7 @@ public class Robot extends TimedRobot {
   
   @Override
   public void autonomousInit() {
+    try {fileWriter = new BufferedWriter(new FileWriter("/tmp/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
     RobotContainer.rotaryCalc(true);
     Autonomous.reset();
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
@@ -110,13 +114,24 @@ public class Robot extends TimedRobot {
     }
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
     auto = RobotContainer.autoChooser.getSelected();
-    Autonomous.idleShooter = RobotContainer.idleShooterSelector.getSelected();
-    Autonomous.shootFirst = RobotContainer.shootFirstSelector.getSelected();
+    Autonomous.shootTimeSec = RobotContainer.waitCounter.getSelected();
+    Autonomous.idleShooter = RobotContainer.shootFastSelector.getSelected();
     Autonomous.reset();
+    Autonomous.speed = RobotContainer.speedChooser.getSelected();
   }
 
   @Override
   public void autonomousPeriodic() {
+    if (Autonomous.prev_autostate != Autonomous.autoState) {
+      try {
+      fileWriter.write(auto + ", speed="+Autonomous.speed + ", AutoState="+Autonomous.autoState + ", time="+(Autonomous.cnt/50.0));
+      fileWriter.newLine();
+      } catch (Exception e) {};
+      System.out.printf("state: %d %d\n",Autonomous.autoState,Autonomous.prev_autostate);
+      Autonomous.prev_autostate = Autonomous.autoState;
+    } else {
+      //System.out.printf("state: %d %d\n",Autonomous.autoState,Autonomous.prev_autostate);
+    }
     switch(auto){
       case "shuttle":
         Autonomous.shuttleAuto();
@@ -136,6 +151,9 @@ public class Robot extends TimedRobot {
       case "depot":
         Autonomous.depotAuto();
         break;
+      case "hub intake":
+        Autonomous.hubIntakeAuto();
+        break;
       case "stay, shoot":
         Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();// pls work
         Driver_Controller.SwerveCommandXValue = 0.0;
@@ -148,7 +166,12 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void autonomousExit() {}
+  public void autonomousExit() {
+    try {
+       fileWriter.close();
+
+    } catch (Exception e) {};
+  }
 
   public static Integer activeTime(){
     Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
@@ -205,7 +228,7 @@ public class Robot extends TimedRobot {
     }
   }
 
-  public static BufferedWriter fileWriter;
+  
   @Override
   public void teleopInit() {
     try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
@@ -232,6 +255,8 @@ public class Robot extends TimedRobot {
 
   static Boolean saveLastPressed = false, recentClose = false, recentPressed = false, startedOutRange = false;
   public static Double prevDesired = 0.0;
+
+  public static ArrayList<Pair<Double, Double>> speedData = new ArrayList<>();
 
   @Override
   public void teleopPeriodic() {
@@ -281,26 +306,19 @@ public class Robot extends TimedRobot {
     if (Driver_Controller.runShooterSwitch()){
       if (Turret.distance > 2.5){
         if (!recentPressed) startedOutRange = true;
-        LED.giveRange("far");
         if (!startedOutRange){
           recentClose = false;
           transportPower = 0.0;
           spindexPow  = 0.0;
         }
-      }else{
-        LED.giveRange("close");
       }
       power = Turret.speedController();
     }else{
       if (!recentPressed) startedOutRange = false;
       recentClose = false;
-      LED.giveRange("hide");
       Turret.avgSpeed = 0.0;
-      if (Driver_Controller.buttonShooterReverse()){
-        power[0] = -0.15;
-        power[1] = -0.15;
-      }
       Turret.curPower[0] = 0.0;
+
       Turret.curPower[1] = 0.0;
       if (vision.seenTags || vision2.seenTags){
         LED.setPattern("rainbow");
@@ -325,13 +343,11 @@ public class Robot extends TimedRobot {
 
     // periodically (every 10 cycles) print out current data
     if (curIndexCowl == 0){
-      System.out.printf("dist=%.3f, cowl=%.3f, shooter=%.3f, offset=%.3f, angle=%.3f, speed=%.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
+      System.out.printf("dist= %.3f, cowl= %.3f, shooter= %.3f, offset= %.3f, angle= %.3f, speed= %.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
     }
-
-    // ++cnt;
-    // Double rate = prevDesired-Turret.targetAngleDeg, error = Turret.modTurretOff;
-    // try{fileWriter.write(cnt+", "+rate+", "+error);fileWriter.newLine();}catch(Exception e){System.out.println("fail");e.printStackTrace();};
-    prevDesired = Turret.targetAngleDeg;
+    if (Turret.avgSpeed != 0.0){
+      speedData.add(new Pair<Double, Double> (Turret.desiredSpeed,Turret.avgSpeed));
+    }
     // Turret.servo1.set((1.0+Driver_Controller.m_Controller3.getRawAxis(4))/2.0);
     // Turret.servo2.set((1.0+Driver_Controller.m_Controller3.getRawAxis(3))/2.0);
     // Turret.servoInverted.set((1.0+Driver_Controller.m_Controller3.getRawAxis(1))/2.0);
@@ -351,14 +367,25 @@ public class Robot extends TimedRobot {
       Turret.shooter1.set(power[0]);
       Turret.shooter2.set(-power[1]);
       Turret.turretSpin.set(spinPower);
-      Turret.servo1.set(Turret.cowlAngle); // axis 4 at +0.29 -> .645 
-      Turret.servo2.set(Turret.cowlAngle-0.24); // axis 3 at -0.19 -> .405 Servoangle-.24
-      Turret.servoInverted.set(1.275-Turret.cowlAngle); // axis 1 at +0.26 -> .63, 1.275-Servoangle
+      Turret.servo1.set(Turret.cowlAngle); // axis 4 at +0.4 -> .7 
+      Turret.servo2.set(Turret.cowlAngle-0.285); // axis 3 at -0.17 -> .415 Servoangle-.285
+      Turret.servoInverted.set(1.33-Turret.cowlAngle); // axis 1 at +0.26 -> .63, 1.33-Servoangle
     }
   }
 
   @Override
-  public void teleopExit() {}
+  public void teleopExit() {
+    try{
+      int len = speedData.size();
+      for (int i = 0; i < len; ++i){
+        fileWriter.write((cnt++)+", "+speedData.get(i).getFirst()+", "+speedData.get(i).getSecond());
+        fileWriter.newLine();
+      }
+    }catch(Exception e){
+      System.out.println("fail");
+      e.printStackTrace();
+    }
+  }
 
   @Override
   public void testInit() {

@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj.SerialPort;
 public class LED {
     public static SerialPort arduino = null;
     public static Boolean working = false;
+    public static final Boolean printPattern = false;
 
     public static void assignPort(){
         try{
@@ -29,27 +30,11 @@ public class LED {
                 return;
             }
             curPattern = newPattern;
-            System.out.println(newPattern);
+            if (printPattern){
+                System.out.println(newPattern);
+            }
             try{
                 arduino.writeString(""+newPattern);
-            }catch(Exception e){
-                System.out.println("UH OH leds failed");
-            }
-        }
-    }
-
-    public static void giveRange(char newRange){
-        if (newRange >= 'A' && newRange <= 'Z'){ // if is a capital letter
-            newRange += 'a'-'A'; // change to lowercase
-        }
-        if (newRange >= 'a' && newRange <= 'z'){ // if is a latter
-            if (newRange == curRange){ // don't send the same pattern multiple times
-                return;
-            }
-            curRange = newRange;
-            System.out.println(newRange);
-            try{
-                arduino.writeString(""+newRange);
             }catch(Exception e){
                 System.out.println("UH OH leds failed");
             }

@@ -49,8 +49,9 @@ public class RobotContainer {
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
     public static final SendableChooser<String> autoChooser = new SendableChooser<>();
-    public static final SendableChooser<Boolean> shootFirstSelector = new SendableChooser<>();
-    public static final SendableChooser<Boolean> idleShooterSelector = new SendableChooser<>();
+    public static final SendableChooser<Boolean> shootFastSelector = new SendableChooser<>();
+    public static final SendableChooser<Double> waitCounter = new SendableChooser<>();
+    public static final SendableChooser<Double> speedChooser = new SendableChooser<>();
 
     public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
@@ -60,18 +61,38 @@ public class RobotContainer {
         autoChooser.addOption("depot", "depot");
         autoChooser.addOption("intake, shoot", "intake, shoot");
         autoChooser.addOption("half-intake", "half-intake");
+        autoChooser.addOption("hub intake", "hub intake");
         autoChooser.setDefaultOption("half+return", "half+return");
         autoChooser.addOption("shuttle", "shuttle");
 
-        idleShooterSelector.addOption("keep shooters fast", false);
-        idleShooterSelector.setDefaultOption("no shooter while intaking", false);
+        waitCounter.addOption("go to neutral immediately", -1.0);
+        waitCounter.addOption("1 second wait/shooting", 1.0);
+        waitCounter.addOption("2 seconds", 2.0);
+        waitCounter.addOption("3 seconds", 3.0);
+        waitCounter.addOption("4 seconds", 4.0);
+        waitCounter.setDefaultOption("5 seconds", 5.0);
+        waitCounter.addOption("6 seconds", 6.0);
+        waitCounter.addOption("6.7 seconds", 6.7);
+        waitCounter.addOption("7 seconds", 7.0);
+        waitCounter.addOption("8 seconds", 8.0);
+        waitCounter.addOption("9 seconds", 9.0);
+        waitCounter.addOption("10 seconds", 10.0);
 
-        shootFirstSelector.addOption("shoot before intake", true);
-        shootFirstSelector.setDefaultOption("shoot only after", false);
+        speedChooser.addOption("speed of 1", 1.0);
+        speedChooser.addOption("2", 2.0);
+        speedChooser.addOption("3", 3.0);
+        speedChooser.setDefaultOption("4 (default)", 4.0);
+        speedChooser.addOption("5", 5.0);
+        speedChooser.addOption("6", 6.0);
+        speedChooser.addOption("7", 7.0);
+
+        shootFastSelector.addOption("keep shooters fast", true);
+        shootFastSelector.setDefaultOption("no shooter while intaking", false);
 
         SmartDashboard.putData("Auto Chooser", autoChooser);
-        SmartDashboard.putData("idle shooter?", idleShooterSelector);
-        SmartDashboard.putData("Shoot first?", shootFirstSelector);
+        SmartDashboard.putData("wait time?", waitCounter);
+        SmartDashboard.putData("Shoot first?", shootFastSelector);
+        SmartDashboard.putData("Speed", speedChooser);
 
         configureBindings();
         
