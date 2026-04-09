@@ -67,24 +67,26 @@ public class Autonomous {
     public static Boolean shouldSkipMove = true;
     public static Double[] destPoints = {0.0, 0.0, 0.0}; // x1, x2, y
     public static void enterNeutralPoints(){
-        shouldSkipMove = false;
+        shouldSkipMove = true;
         Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
         Double odox = RobotContainer.drivetrain.getState().Pose.getX();
         if (odoy > 4.034663){
             destPoints[2] = 7.4247756;//-0.15;
+            if (odoy < 4.034663*1.5) shouldSkipMove = false;
         }else{
             destPoints[2] = (4.034663*2-7.4247756);//+0.15;
+            if (odoy > 4.034663*0.5) shouldSkipMove = false;
         }
         if (odox > (11.915394+4.62534)/2){
             destPoints[0] = 11.915394+1.0;
-            if (odox < (11.915394+0.8)){
-                shouldSkipMove = true;
+            if (odox > (11.915394+1.0)){
+                shouldSkipMove = false;
             }
             destPoints[1] = 11.915394-2;
         }else{
             destPoints[0] = 4.62534-1.0;
-            if (odox > (4.62534-0.8)){
-                shouldSkipMove = true;
+            if (odox < (4.62534-1.0)){
+                shouldSkipMove = false;
             }
             destPoints[1] = 4.62534+2;
         }
@@ -251,7 +253,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(driveAngle)){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*Math.min(0.6, endVeloMult), 0.0, Math.min(2.0, speed), 50);
                     ++autoState;
                 }
                 break;
@@ -345,7 +347,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(Driver_Controller.pigeonOffset+RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble())){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(0.6, endVeloMult), 0.0, Math.min(2.0, speed), 50);
                     ++autoState;
                 }
                 break;
@@ -454,7 +456,7 @@ public class Autonomous {
     public static void halfIntakeReturnAuto(){
         ++cnt;
         switch(autoState){
-            case 0:
+            case 0:// wait to shoot preloads, set up spline
                 if (cnt >= 50*shootTimeSec){
                     startIntakeAngle = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
                     enterNeutralPoints();
@@ -463,7 +465,7 @@ public class Autonomous {
                 }
                 shootAuto(true);
                 break;
-            case 1:
+            case 1:// do the first move through the trench (or not if close to trench)
                 if (shouldSkipMove || AutoDrive.driveSpline(startIntakeAngle)){
                     Transport.setIntake(0.6);
                     AutoDrive.setSpline(destPoints[1], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
@@ -471,23 +473,23 @@ public class Autonomous {
                 }
                 shootAuto(false);
                 break;
-            case 2:
+            case 2: // get to the neutral zone
                 shootAuto(false);
                 if (AutoDrive.driveSpline(startIntakeAngle)){
                     Double yPosition = 4.034663+((destPoints[2] > 4.034663)?0.5:-0.5);
-                    AutoDrive.setSpline((14.552041+1.988947)/2+((alliance == 'R')?0.5:-0.5), yPosition, 0.0, 0.0, speed, 50);
+                    AutoDrive.setSpline((14.552041+1.988947)/2+((alliance == 'R')?1.0:-1.0), yPosition, 0.0, 0.0, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 3:
+            case 3: // go toward middle
                 shootAuto(false);
                 if (AutoDrive.driveSpline()){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(2.0, endVeloMult), 0.0, Math.min(2.0, speed), 50);
                     ++autoState;
                 }
                 break;
-            case 4:
+            case 4: // return to trench
                 shootAuto(false);
                 if (AutoDrive.driveSpline()){
                     Transport.setIntake(0.0);
@@ -495,7 +497,7 @@ public class Autonomous {
                     ++autoState;
                 }
                 break;
-            case 5:
+            case 5: // get to Alliance zone
                 shootAuto(false);
                 if (AutoDrive.driveSpline()){
                     Double desiredX = ((destPoints[0] > (14.552041+1.988947)/2)?
@@ -507,7 +509,7 @@ public class Autonomous {
                     ++autoState;
                 }
                 break;
-            case 6:
+            case 6: // head toward hub 
                 shootAuto(false);
                 if (AutoDrive.driveSpline((alliance == 'R')?0.0:180.0)){
                     Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
@@ -517,7 +519,7 @@ public class Autonomous {
                     ++autoState;
                 }
                 break;
-            case 7:
+            case 7: // shoot until 5 secs left
                 Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
                 System.out.println(time);
                 if (cnt >= 15*50){
@@ -533,21 +535,21 @@ public class Autonomous {
                 }
                 shootAuto(true);
                 break;
-            case 8:
+            case 8: // go to trench
                 if (shouldSkipMove || AutoDrive.driveSpline(((alliance == 'R')?180.0:0.0))){
                     Transport.setIntake(0.6);
                     AutoDrive.setSpline(destPoints[1], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 9:
+            case 9: // go into neutral
                 if (AutoDrive.driveSpline()){
-                    Double yPosition = 4.034663+((destPoints[2] > 4.034663)?0.5:-0.5);
+                    Double yPosition = 4.034663+((destPoints[2] > 4.034663)?1.0:-1.0);
                     AutoDrive.setSpline((14.552041+1.988947)/2, yPosition, 0.0, 0.0, speed, 50);
                     ++autoState;
                 }
                 break;
-            case 10:
+            case 10: // go toward center and stop
                 if (AutoDrive.driveSpline()){
                     Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
                     Driver_Controller.SwerveCommandXValue = 0.0;
@@ -637,7 +639,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(startIntakeAngle)){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(2.0, endVeloMult), 0.0, Math.min(2.0, speed), 50);
                     ++autoState;
                 }
                 break;
