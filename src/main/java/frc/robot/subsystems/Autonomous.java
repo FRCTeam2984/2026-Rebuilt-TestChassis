@@ -101,14 +101,15 @@ public class Autonomous {
         
         if (alliance == 'R'){
             destPoints[0] = 11.915394;
-            destPoints[1] = 11.915394+1.2;
+            destPoints[1] = 11.915394+1.5;
         }else{
             destPoints[0] = 4.62534;
-            destPoints[1] = 4.62534-1.2;
+            destPoints[1] = 4.62534-1.5;
         }
     }
 
     public static Double speed = 4.0, endVeloMult = 0.3*speed, shootTimeSec = 5.0;
+    public static final Double slowTrenchSpeed = 2.0;
     public static Integer autoState = 0;
     public static void shuttleAuto(){
         ++cnt;
@@ -257,7 +258,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(driveAngle)){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*Math.min(0.6, endVeloMult), 0.0, Math.min(2.0, speed), 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*Math.min(0.3*slowTrenchSpeed, endVeloMult), 0.0, Math.min(slowTrenchSpeed, speed), 50);
                     ++autoState;
                 }
                 break;
@@ -335,7 +336,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(Driver_Controller.pigeonOffset+RobotContainer.drivetrain.getPigeon2().getYaw().getValueAsDouble())){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(0.6, endVeloMult), 0.0, Math.min(2.0, speed), 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(0.3*slowTrenchSpeed, endVeloMult), 0.0, Math.min(slowTrenchSpeed, speed), 50);
                     ++autoState;
                 }
                 break;
@@ -491,7 +492,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline()){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(2.0, endVeloMult), 0.0, Math.min(2.0, speed), 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(0.3*slowTrenchSpeed, endVeloMult), 0.0, Math.min(slowTrenchSpeed, speed), 50);
                     ++autoState;
                 }
                 break;
@@ -644,7 +645,7 @@ public class Autonomous {
                 shootAuto(false);
                 if (AutoDrive.driveSpline(startIntakeAngle)){
                     enterAlliancePoints();
-                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(2.0, endVeloMult), 0.0, Math.min(2.0, speed), 50);
+                    AutoDrive.setSpline(destPoints[0], destPoints[2], 1.5*(destPoints[0]-destPoints[1])*Math.min(0.3*slowTrenchSpeed, endVeloMult), 0.0, Math.min(slowTrenchSpeed, speed), 50);
                     ++autoState;
                 }
                 break;
