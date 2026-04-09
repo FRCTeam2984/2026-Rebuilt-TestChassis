@@ -71,7 +71,7 @@ public class Turret {
         Double fieldDriveVeloAngle = Math.atan2(robotVeloY, robotVeloX)+
             Math.toRadians(fieldRobotAngleDeg); // TODO, fixme: test for  both red and blue
         Double magnitude = Math.sqrt(Math.pow(robotVeloX, 2)+Math.pow(robotVeloY, 2));
-        final Double flightTime = 1.10; // 1/2 second flight time of the fuel
+        final Double flightTime = 1.2; // 1.2 second flight time of the fuel
         Double fieldVeloX = magnitude*Math.cos(fieldDriveVeloAngle)*flightTime;
         Double fieldVeloY = magnitude*Math.sin(fieldDriveVeloAngle)*flightTime;
         //System.out.printf("xVelo = %.3f, yVelo = %.3f\n", xVelo, yVelo);
@@ -79,7 +79,7 @@ public class Turret {
         Double projectedOdoY = RobotContainer.drivetrain.getState().Pose.getY() + fieldVeloY;
         Double projectedOdoX = RobotContainer.drivetrain.getState().Pose.getX() + fieldVeloX;
         
-        final Double turretLagTime = 0.15; // turret lags behind by x seconds: TODO, fixme: this should be an interpolation table!!!
+        final Double turretLagTime = 0.25; // turret lags behind by x seconds: TODO, fixme: this should be an interpolation table!!!
         Double projectedOdoA = Math.toRadians(((
             fieldRobotAngleDeg+
             RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()*turretLagTime+ // degreesPerSec * lag(s) = pre-aiming
@@ -87,22 +87,20 @@ public class Turret {
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
-            if (projectedOdoX < blueTargetX[2]){ // if we are in blue alliance zone
+            if (RobotContainer.drivetrain.getState().Pose.getX() < blueTargetX[2]){ // if we are in blue alliance zone
                 destX = blueTargetX[2];
                 destY = TargetY[2];
             }else{ // in neutral zone/red alliance zone
-                LED.giveRange('d');
                 destX = blueTargetX[0];
-                destY = TargetY[((projectedOdoY > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
+                destY = TargetY[((RobotContainer.drivetrain.getState().Pose.getY() > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
             }
         }else{ // if alliance is red
-            if (projectedOdoX > redTargetX[2]){ // if we are in red alliance zone
+            if (RobotContainer.drivetrain.getState().Pose.getX() > redTargetX[2]){ // if we are in red alliance zone
                 destX = redTargetX[2];
                 destY = TargetY[2];
             }else{ // in neutral zone/blue alliance zone
-                LED.giveRange('d');
                 destX = redTargetX[0];
-                destY = TargetY[((projectedOdoY > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
+                destY = TargetY[((RobotContainer.drivetrain.getState().Pose.getY() > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
             }
         }
         
@@ -123,7 +121,7 @@ public class Turret {
             // If robot is in the neutral zone OR far alliance zone:
         if ((Robot.alliance == 'B' && projectedOdoX > blueTargetX[2]) || (Robot.alliance == 'R' && projectedOdoX < redTargetX[2])){
             interpolatedTurretOffset = ((Driver_Controller.useOffsets())?Driver_Controller.offsetSlider():0.0);
-            desiredSpeed = Math.max(10.0, Math.min(60.0, (Driver_Controller.buttonLimitShuttle()?20.0:50.0)+0*Driver_Controller.shooterOffsetSlider()));
+            desiredSpeed = Math.max(10.0, Math.min(30.0, (Driver_Controller.buttonLimitShuttle()?20.0:30.0)+0*Driver_Controller.shooterOffsetSlider()));
             cowlAngle = 0.0;
             modTurretOff = 180 - (turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;
             inAlliance = true;
@@ -161,16 +159,17 @@ public class Turret {
 
             Double temp1 = Udist1[i] - (Udist1[0]-distance)/(Udist1[0]-Ldist1[0])*(Udist1[i]-Ldist1[i]);
             Double temp2 = Udist2[i] - (Udist2[0]-distance)/(Udist2[0]-Ldist2[0])*(Udist2[i]-Ldist2[i]);
-            interpolated[i-1] = temp2 
+            interpolated[i-1] = temp2
                 //- (upper.get(0)[0]-targetAngleDeg)
                 - (targetAngleDeg - lower.get(0)[0])
                 /(upper.get(0)[0]-lower.get(0)[0])
                 *(temp2-temp1);
-            //if (((update_time++) & 7)==0)
             if (false)
-                   System.out.printf("udist1 %f %f, udist2 %f %f, distance %f, targetAng %f %f %f, temp1 %f, temp2 %f, interp %f: %f %f %f %f\n",
+                   System.out.printf("udist1 %f %f, udist2 %f %f, Ldist 1 2 %f %f %f %fdistance %f, targetAng %f %f %f, temp1 %f, temp2 %f, interp %f: %f %f %f %f\n",
             Udist1[0], Udist1[i],
             Udist2[0], Udist2[i],
+            Ldist1[0], Ldist1[i],
+            Ldist2[0], Ldist2[i],
             distance,
             targetAngleDeg,
             upper.get(0)[0], lower.get(0)[0],
@@ -186,26 +185,25 @@ public class Turret {
         if (!Driver_Controller.manualSwitch())interpolatedTurretOffset = interpolated[2];
         if (Driver_Controller.useOffsets()) interpolatedTurretOffset += Driver_Controller.offsetSlider();
         desiredSpeed = interpolated[1];
-        desiredSpeed -= 10;
+        //desiredSpeed -= 10;
         if (Driver_Controller.useOffsets()) desiredSpeed += Driver_Controller.shooterOffsetSlider();
         //desiredSpeed = Math.min(60.0, desiredSpeed);
         cowlAngle = interpolated[0];
         if (Driver_Controller.useOffsets()) cowlAngle -= 
             0.2835*Driver_Controller.m_Controller3.getRawAxis(4);
         cowlAngle = Math.max(.24, Math.min(.807, cowlAngle+0.04));
-        desiredSpeed = Math.max(10.0, Math.min(60.0, desiredSpeed));
+        desiredSpeed = Math.max(10.0, Math.min(30.0, desiredSpeed));
 
         Double errorFix = 5*(prevAngle-targetAngleDeg);
         if (errorFix > 5*180) errorFix -= 5*360;
         if (errorFix < -5*180) errorFix += 5*360;
-        try{Robot.fileWriter.write((Robot.cnt++)+", "+errorFix/5+", "+(180-(turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360));Robot.fileWriter.newLine();}catch(Exception e){System.out.println("fail");e.printStackTrace();};
         modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset - errorFix + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
         //System.out.println(modTurretOff);
         }catch (Exception e){}
     }
 
     public static Double spinTurret(){
-        Double maxPowDist = 40.0;
+        Double maxPowDist = 60.0;
         Double power = modTurretOff/maxPowDist*maxPower;
 
         if (Math.abs(modTurretOff) < maxError){ // if really close to perfect, then no power needed
@@ -217,7 +215,7 @@ public class Turret {
         Double speedCompensation = 0.1*maxAdjust*(minSpeed-Math.abs(turretEncoder.getVelocity()))/minSpeed;
         power += speedCompensation;
         power = Math.min(maxPower, Math.max(-maxPower, power)); // limit power to between -maxPower and +maxPower	
-        return -power/1.5;
+        return -power/2.0;
     }
     
     public static Double resetEncoder(){
@@ -260,8 +258,10 @@ public class Turret {
                         ++curSubarray;
                         ArrayList<Double[]> newAdd = new ArrayList<>(0);
                         cowlInterpolation.add(newAdd);
+                        //System.out.println("{");
                         break;
                     case "}":
+                        //System.out.println("}");
                         break;
                     default:
                         String[] words = line.trim().split("\\s+");
@@ -269,7 +269,9 @@ public class Turret {
                         Double[] converted = new Double[numberValues];
                         for (int i = 0; i < numberValues; ++i){
                             converted[i] = Double.parseDouble(words[i]);
+                            //System.out.print(converted[i]+" ");
                         }
+                        //System.out.println();
                         cowlInterpolation.get(curSubarray).add(converted);
                         break;
                 }
@@ -350,13 +352,13 @@ public class Turret {
         //if (speedIndex == 0) System.out.print(velocity + ",  ");
 
         Double p, i, d;
-        p = desiredSpeed*0.01;
+        p = desiredSpeed*0.01; // 100 rps is max power?
         if ((desiredSpeed-velocity) < 0){
-            p += (desiredSpeed-velocity)*0.005;
+            p += (desiredSpeed-velocity)*0.01; // needs to slow down
         }else{
-            p += (desiredSpeed-velocity)*0.002;
+            p += (desiredSpeed-velocity)*0.02; // needs to go faster
         }
-        i = (desiredSpeed-velocity)*0.000025;
+        i = (desiredSpeed-velocity)*0.00005;
         curPower[0] += i;
         d = accel*(-0.015);
         Double power1 = Math.min(1.0, Math.max(0.0, p+curPower[0]+d));
@@ -372,11 +374,11 @@ public class Turret {
 
         p = desiredSpeed*0.01;
         if ((desiredSpeed-velocity) < 0){
-            p += (desiredSpeed-velocity)*0.005;
+            p += (desiredSpeed-velocity)*0.01;
         }else{
-            p += (desiredSpeed-velocity)*0.002;
+            p += (desiredSpeed-velocity)*0.02;
         }
-        i = (desiredSpeed-velocity)*0.000025;
+        i = (desiredSpeed-velocity)*0.00005;
         curPower[1] += i;
         d = accel*(-0.015);
         Double power2 = Math.min(1.0, Math.max(0.0, p+curPower[1]+d));

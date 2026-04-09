@@ -46,6 +46,7 @@ import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 public class Vision {
+    public static Boolean useVisionButton = false;
     public PhotonCamera camera, camera2;
     private final PhotonPoseEstimator photonEstimator;
     private Matrix<N3, N1> curStdDevs;
@@ -91,10 +92,10 @@ public class Vision {
     }
 
     public void periodic() {
-        // if (!Driver_Controller.visionSwitch()){
-        //     seenTags = false;
-        //     return;
-        // }
+        if ((!Driver_Controller.visionSwitch()) && useVisionButton){
+            seenTags = false;
+            return;
+        }
         Optional<EstimatedRobotPose> visionEst = Optional.empty();
         for (var change : camera.getAllUnreadResults()) {
             visionEst = photonEstimator.estimateCoprocMultiTagPose(change);
