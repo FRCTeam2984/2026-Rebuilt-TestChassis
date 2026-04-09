@@ -118,6 +118,7 @@ public class Robot extends TimedRobot {
     Autonomous.idleShooter = RobotContainer.shootFastSelector.getSelected();
     Autonomous.reset();
     Autonomous.speed = RobotContainer.speedChooser.getSelected();
+    Autonomous.shootPosition = RobotContainer.endPositionChooser.getSelected();
   }
 
   @Override

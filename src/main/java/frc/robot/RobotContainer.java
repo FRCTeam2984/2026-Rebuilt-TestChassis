@@ -52,6 +52,7 @@ public class RobotContainer {
     public static final SendableChooser<Boolean> shootFastSelector = new SendableChooser<>();
     public static final SendableChooser<Double> waitCounter = new SendableChooser<>();
     public static final SendableChooser<Double> speedChooser = new SendableChooser<>();
+    public static final SendableChooser<Integer> endPositionChooser = new SendableChooser<>();
 
     public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
@@ -89,10 +90,15 @@ public class RobotContainer {
         shootFastSelector.addOption("keep shooters fast", true);
         shootFastSelector.setDefaultOption("no shooter while intaking", false);
 
+        endPositionChooser.setDefaultOption("end at trench", 0);
+        endPositionChooser.addOption("diagonal to hub", 1);
+        endPositionChooser.addOption("behind hub", 2);
+
         SmartDashboard.putData("Auto Chooser", autoChooser);
         SmartDashboard.putData("wait time?", waitCounter);
         SmartDashboard.putData("Shoot first?", shootFastSelector);
         SmartDashboard.putData("Speed", speedChooser);
+        SmartDashboard.putData("position", endPositionChooser);
 
         configureBindings();
         
