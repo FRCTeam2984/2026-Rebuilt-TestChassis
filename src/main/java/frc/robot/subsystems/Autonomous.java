@@ -212,6 +212,7 @@ public class Autonomous {
                 }
                 break;
             case 3:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
@@ -289,6 +290,7 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
@@ -368,6 +370,7 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
@@ -511,6 +514,7 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
@@ -554,52 +558,6 @@ public class Autonomous {
                 break;
         }
     }
-
-    // public static void DEFENSEAUTOYAYAYAYAYAYAY(){
-    //     Double odoy = RobotContainer.drivetrain.getState().Pose.getY();
-    //     Double odox = RobotContainer.drivetrain.getState().Pose.getX();
-    //     Double defenseSpeedMpS = 0.1;
-    //     switch(autoState){
-    //         case 0:
-    //             enterNeutralPoints();
-    //             AutoDrive.setSpline(destPoints[0], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
-    //             ++autoState;
-    //             break;
-    //         case 1:
-    //             if (AutoDrive.driveSpline()){
-    //                 AutoDrive.setSpline((14.552041+1.988947)/2, destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult*2, 0.0, speed, 50);
-    //                 ++autoState;
-    //             }
-    //             break;
-    //         case 2:
-    //             if (AutoDrive.driveSpline()){
-    //                 ++autoState;
-    //             }
-    //         case 3:
-    //             if (destPoints[2] < 4.034663){
-    //                 if (odoy > 4.034663*1.5){
-    //                     ++autoState;
-    //                     break;
-    //                 }
-    //                 Driver_Controller.SwerveCommandEncoderValue = 90;
-    //                 Driver_Controller.SwerveCommandXValue = 0.0;
-    //                 Driver_Controller.SwerveCommandYValue = defenseSpeedMpS;
-    //                 break;
-    //             }else{
-    //                 if (odoy < 4.034663*0.5){
-    //                     ++autoState;
-    //                     break;
-    //                 }
-    //                 Driver_Controller.SwerveCommandEncoderValue = 90;
-    //                 Driver_Controller.SwerveCommandXValue = 0.0;
-    //                 Driver_Controller.SwerveCommandYValue = -defenseSpeedMpS;
-    //                 break;
-    //             }
-    //         case 4:
-                
-                
-    //     }
-    // }
 
     public static Double startIntakeAngle = 0.0;
     public static void hubIntakeAuto(){
@@ -667,13 +625,12 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
             case 7:
-                Driver_Controller.SwerveCommandXValue = 0.0;
-                Driver_Controller.SwerveCommandYValue = 0.0;
-                Driver_Controller.SwerveControlSet(true);
+                RobotContainer.stopMovement();
                 shootAuto(true);
                 break;
         }
@@ -745,13 +702,12 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
             case 7:
-                Driver_Controller.SwerveCommandXValue = 0.0;
-                Driver_Controller.SwerveCommandYValue = 0.0;
-                Driver_Controller.SwerveControlSet(true);
+                RobotContainer.stopMovement();
                 shootAuto(true);
                 break;
         }
@@ -823,13 +779,12 @@ public class Autonomous {
                 }
                 break;
             case 6:
+                shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
                 break;
             case 7:
-                Driver_Controller.SwerveCommandXValue = 0.0;
-                Driver_Controller.SwerveCommandYValue = 0.0;
-                Driver_Controller.SwerveControlSet(true);
+                RobotContainer.stopMovement();
                 shootAuto(true);
                 if (cnt >= 15*50){
                     Turret.shooter1.set(0.0);
@@ -859,10 +814,7 @@ public class Autonomous {
                 break;
             case 10: // go toward center and stop
                 if (AutoDrive.driveSpline(false)){
-                    Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
-                    Driver_Controller.SwerveCommandXValue = 0.0;
-                    Driver_Controller.SwerveCommandYValue = 0.0;
-                    Driver_Controller.SwerveControlSet(true);
+                    RobotContainer.stopMovement();
                     ++autoState;
                 }
                 break;
