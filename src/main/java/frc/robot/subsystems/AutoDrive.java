@@ -171,8 +171,10 @@ public class AutoDrive{
             return true;
         }
     }
-    public static Boolean driveSpline(){
-        return driveSpline(-999999.0);
+    public static Boolean driveSpline(Boolean keepAngle){
+        if (keepAngle){
+            return driveSpline(RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
+        }
+        else return driveSpline(-999999.0);
     }
-    
 }

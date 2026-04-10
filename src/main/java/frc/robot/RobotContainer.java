@@ -57,21 +57,22 @@ public class RobotContainer {
     public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
     public RobotContainer() {
-        autoChooser.addOption("stay, shoot", "stay, shoot");
-        autoChooser.addOption("outpost", "outpost");
-        autoChooser.addOption("depot", "depot");
-        autoChooser.addOption("intake, shoot", "intake, shoot");
-        autoChooser.addOption("half-intake", "half-intake");
-        autoChooser.addOption("hub intake", "hub intake");
-        autoChooser.setDefaultOption("half+return", "half+return");
-        autoChooser.addOption("shuttle", "shuttle");
-
-        waitCounter.addOption("go to neutral immediately", -1.0);
+        autoChooser.addOption("1. HALF Hub", "half hub");
+        autoChooser.addOption("2. HALF Hub RETURN", "half hub return");
+        autoChooser.addOption("3. FULL Hub", "hub intake");
+        autoChooser.setDefaultOption("4. HALF and RETURN", "half+return");
+        autoChooser.addOption("5. HALF intake", "half-intake");
+        autoChooser.addOption("6. Outpost", "outpost");
+        autoChooser.addOption("7. FULL FIELD intake", "intake, shoot");
+        autoChooser.addOption("8. Depot", "depot");
+        autoChooser.addOption("9.stay, shoot", "stay, shoot");
+        
+        waitCounter.setDefaultOption("go to neutral immediately", -1.0);
         waitCounter.addOption("1 second wait/shooting", 1.0);
         waitCounter.addOption("2 seconds", 2.0);
         waitCounter.addOption("3 seconds", 3.0);
         waitCounter.addOption("4 seconds", 4.0);
-        waitCounter.setDefaultOption("5 seconds", 5.0);
+        waitCounter.addOption("5 seconds", 5.0);
         waitCounter.addOption("6 seconds", 6.0);
         waitCounter.addOption("6.7 seconds", 6.7);
         waitCounter.addOption("7 seconds", 7.0);

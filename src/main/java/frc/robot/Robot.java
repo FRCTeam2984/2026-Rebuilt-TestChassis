@@ -116,9 +116,9 @@ public class Robot extends TimedRobot {
     auto = RobotContainer.autoChooser.getSelected();
     Autonomous.shootTimeSec = RobotContainer.waitCounter.getSelected();
     Autonomous.idleShooter = RobotContainer.shootFastSelector.getSelected();
-    Autonomous.reset();
     Autonomous.speed = RobotContainer.speedChooser.getSelected();
     Autonomous.shootPosition = RobotContainer.endPositionChooser.getSelected();
+    Autonomous.reset();
   }
 
   @Override
@@ -154,6 +154,12 @@ public class Robot extends TimedRobot {
         break;
       case "hub intake":
         Autonomous.hubIntakeAuto();
+        break;
+      case "half hub":
+        Autonomous.halfHubAuto();
+        break;
+      case "half hub return":
+        Autonomous.halfHubReturnAuto();
         break;
       case "stay, shoot":
         Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();// pls work
