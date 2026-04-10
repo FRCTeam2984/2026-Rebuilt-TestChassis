@@ -169,6 +169,13 @@ public class RobotContainer {
         return powerCurved * 0.1;
     }
 
+    public static void stopMovement(){
+        Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
+        Driver_Controller.SwerveCommandXValue = 0.0;
+        Driver_Controller.SwerveCommandYValue = 0.0;
+        Driver_Controller.SwerveControlSet(true);
+    }
+
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
