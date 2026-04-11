@@ -56,7 +56,7 @@ public class RobotContainer {
 
     public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();    
 
-    public RobotContainer() { // 3193 combinations
+    public RobotContainer() { // 3194 combinations
         autoChooser.addOption("1. HALF Hub", "half hub");
         autoChooser.addOption("2. HALF Hub RETURN", "half hub return");
         autoChooser.addOption("3. FULL Hub", "hub intake");

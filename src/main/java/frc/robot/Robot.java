@@ -4,7 +4,9 @@
 
 package frc.robot;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
 
@@ -21,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.*;
 
 public class Robot extends TimedRobot {
+  public static RobotState curState = new RobotState();
   public static Boolean isTestChassis = false;
   public static char alliance = 'B';
   public static int scoringPos = 0;
@@ -29,6 +32,7 @@ public class Robot extends TimedRobot {
   private Vision vision, vision2;
   public final RobotContainer m_robotContainer;
   public static BufferedWriter fileWriter;
+  public static BufferedReader bufferedReader;
 
   public Robot() {
     m_robotContainer = new RobotContainer();
@@ -100,47 +104,29 @@ public class Robot extends TimedRobot {
     }
   }
   String auto = "stay, shoot";
-  
+
   @Override
   public void autonomousInit() {
-    try {fileWriter = new BufferedWriter(new FileWriter("/tmp/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
     RobotContainer.rotaryCalc(true);
-    Autonomous.reset();
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
-    //m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     Driver_Controller.define_Controller();
-    if (m_autonomousCommand != null) {
-      //m_autonomousCommand.schedule();
-    }
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
-    auto = RobotContainer.autoChooser.getSelected();
-    Autonomous.shootTimeSec = RobotContainer.waitCounter.getSelected();
-    Autonomous.idleShooter = RobotContainer.shootFastSelector.getSelected();
-    Autonomous.speed = RobotContainer.speedChooser.getSelected();
-    Autonomous.shootPosition = RobotContainer.endPositionChooser.getSelected();
-    Autonomous.reset();
+    try{
+      FileReader fileReader = new FileReader(Constants.interpolationReadFile);
+      bufferedReader = new BufferedReader(fileReader);
+    }catch (Exception e){e.printStackTrace();}
   }
 
   @Override
   public void autonomousPeriodic() {
-    RobotState curState = new RobotState();
-    curState.buttonEBrake = Driver_Controller.buttonEBrake();
-    curState.buttonIntakeReverse = Driver_Controller.buttonIntakeReverse();
-    curState.buttonLimitShuttle = Driver_Controller.buttonLimitShuttle();
-    curState.buttonResetTurret = Driver_Controller.buttonResetTurret();
-    curState.buttonRestrictTransport = Driver_Controller.buttonRestrictTransport();
-    curState.buttonShooterReverse = Driver_Controller.buttonShooterReverse();
-    curState.buttonTransportReverse = Driver_Controller.buttonTransportReverse();
-    curState.cowlSlider = Driver_Controller.cowlSlider();
-    curState.intakeSwitch = Driver_Controller.intakeSwitch();
-    curState.kitchenStove = Driver_Controller.kitchenStove();
-    curState.manualSwitch = Driver_Controller.manualSwitch();
-    curState.offsetSlider = Driver_Controller.offsetSlider();
-    curState.pauseTurret = Driver_Controller.pauseTurret();
-    curState.runShooterSwitch = Driver_Controller.runShooterSwitch();
-    curState.shooterOffsetSlider = Driver_Controller.shooterOffsetSlider();
-    curState.shooterSpeedSlider = Driver_Controller.shooterSpeedSlider();
-    curState.targetAngle = Rotary_Controller.RotaryJoystick(Driver_Controller.m_Controller1)+RobotContainer.rotaryOffset;
+    Driver_Controller.SwerveControlSet(true);
+    String line = null;
+    // try{
+    //   if ((line = bufferedReader.readLine()) != null){
+    //     curState.update(line);
+    //   }
+    // }catch (Exception e){e.printStackTrace();}
+    System.out.println(curState.getString());
     teleopPeriodic();
   }
 
