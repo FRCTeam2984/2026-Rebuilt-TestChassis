@@ -61,9 +61,11 @@ public class Driver_Controller {
     }
 }
 
+public static Boolean isAuto = false;
 
 public static Boolean buttonBrake(){
-    return m_Controller1.getRawButton(1);}
+    return m_Controller1.getRawButton(1);
+}
 public static Boolean buttonLimitShuttle(){
     return m_Controller1.getRawButton(2);}
 public static Boolean flipDrive(){
