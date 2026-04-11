@@ -1,6 +1,6 @@
 package frc.robot.subsystems;
 
-public class robotState {
+public class RobotState {
     public Double xPos;
     public Double yPos;
     public Double targetAngle;

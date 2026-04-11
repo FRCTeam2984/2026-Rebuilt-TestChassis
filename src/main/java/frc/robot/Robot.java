@@ -123,56 +123,25 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-    if (Autonomous.prev_autostate != Autonomous.autoState) {
-      try {
-      fileWriter.write(auto + ", speed="+Autonomous.speed + ", AutoState="+Autonomous.autoState + ", time="+(Autonomous.cnt/50.0));
-      fileWriter.newLine();
-      } catch (Exception e) {};
-      System.out.printf("state: %d %d\n",Autonomous.autoState,Autonomous.prev_autostate);
-      Autonomous.prev_autostate = Autonomous.autoState;
-    } else {
-      //System.out.printf("state: %d %d\n",Autonomous.autoState,Autonomous.prev_autostate);
-    }
-    switch(auto){
-      case "shuttle":
-        Autonomous.shuttleAuto();
-        break;
-      case "outpost":
-        Autonomous.outpostAuto();
-        break;
-      case "half-intake":
-        Autonomous.halfIntakeAuto();
-        break;
-      case "half+return":
-        Autonomous.halfIntakeReturnAuto();
-        break;
-      case "intake, shoot":
-        Autonomous.intakeAuto();
-        break;
-      case "depot":
-        Autonomous.depotAuto();
-        break;
-      case "hub intake":
-        Autonomous.hubIntakeAuto();
-        break;
-      case "half hub":
-        Autonomous.halfHubAuto();
-        break;
-      case "half hub return":
-        Autonomous.halfHubReturnAuto();
-        break;
-      case "drive straight":
-        Autonomous.driveStraightAuto();
-        break;
-      case "stay, shoot":
-        Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();// pls work
-        Driver_Controller.SwerveCommandXValue = 0.0;
-        Driver_Controller.SwerveCommandYValue = 0.0;
-        Driver_Controller.SwerveControlSet(true);
-      default:
-        Autonomous.shootAuto();
-        break;
-    }
+    RobotState curState = new RobotState();
+    curState.buttonEBrake = Driver_Controller.buttonEBrake();
+    curState.buttonIntakeReverse = Driver_Controller.buttonIntakeReverse();
+    curState.buttonLimitShuttle = Driver_Controller.buttonLimitShuttle();
+    curState.buttonResetTurret = Driver_Controller.buttonResetTurret();
+    curState.buttonRestrictTransport = Driver_Controller.buttonRestrictTransport();
+    curState.buttonShooterReverse = Driver_Controller.buttonShooterReverse();
+    curState.buttonTransportReverse = Driver_Controller.buttonTransportReverse();
+    curState.cowlSlider = Driver_Controller.cowlSlider();
+    curState.intakeSwitch = Driver_Controller.intakeSwitch();
+    curState.kitchenStove = Driver_Controller.kitchenStove();
+    curState.manualSwitch = Driver_Controller.manualSwitch();
+    curState.offsetSlider = Driver_Controller.offsetSlider();
+    curState.pauseTurret = Driver_Controller.pauseTurret();
+    curState.runShooterSwitch = Driver_Controller.runShooterSwitch();
+    curState.shooterOffsetSlider = Driver_Controller.shooterOffsetSlider();
+    curState.shooterSpeedSlider = Driver_Controller.shooterSpeedSlider();
+    curState.targetAngle = Rotary_Controller.RotaryJoystick(Driver_Controller.m_Controller1)+RobotContainer.rotaryOffset;
+    teleopPeriodic();
   }
 
   @Override
