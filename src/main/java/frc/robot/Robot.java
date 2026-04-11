@@ -161,6 +161,9 @@ public class Robot extends TimedRobot {
       case "half hub return":
         Autonomous.halfHubReturnAuto();
         break;
+      case "drive straight":
+        Autonomous.driveStraightAuto();
+        break;
       case "stay, shoot":
         Driver_Controller.SwerveCommandEncoderValue = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();// pls work
         Driver_Controller.SwerveCommandXValue = 0.0;
@@ -268,7 +271,6 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     SignalLogger.stop();
-    if (System.nanoTime()%100*1000*1000 > 70*1000*1000)Driver_Controller.kitchenStove();
     Double transportPower, intakePower, spinPower, spindexPow;
     Turret.calcDist();
 

@@ -503,6 +503,7 @@ public class Autonomous {
                     }else{
                         Double ypos, xpos;
                         if (shootPosition == 1){
+                            System.out.println("hee");
                             xpos = destPoints[1];
                             ypos = (4.034663*2.0+destPoints[2])/3.0;
                         }else{
@@ -514,6 +515,7 @@ public class Autonomous {
                 }
                 break;
             case 6:
+            System.out.println("here");
                 shootAuto(false);
                 Double angle = (shootPosition==2?(Driver_Controller.pigeonOffset+((alliance=='R')?179.9:0.0)):RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
                 if (AutoDrive.driveSpline(angle)) ++autoState;
@@ -522,7 +524,6 @@ public class Autonomous {
                 Driver_Controller.SwerveCommandXValue = 0.0;
                 Driver_Controller.SwerveCommandYValue = 0.0;
                 Integer time = Math.toIntExact(Math.round(DriverStation.getMatchTime()));
-                System.out.println(time);
                 if (cnt >= 15*50){
                     Turret.shooter1.set(0.0);
                     Turret.shooter2.set(0.0);
@@ -537,14 +538,14 @@ public class Autonomous {
                 shootAuto(true);
                 break;
             case 8: // go to trench
-                if (shouldSkipMove || AutoDrive.driveSpline(((alliance == 'R')?180.0:0.0))){
+                if (shouldSkipMove || AutoDrive.driveSpline(true)){
                     Transport.setIntake(0.6);
                     AutoDrive.setSpline(destPoints[1], destPoints[2], (destPoints[0]-destPoints[1])*endVeloMult, 0.0, speed, 50);
                     ++autoState;
                 }
                 break;
             case 9: // go into neutral
-                if (AutoDrive.driveSpline(false)){
+                if (AutoDrive.driveSpline(true)){
                     Double yPosition = 4.034663+((destPoints[2] > 4.034663)?1.0:-1.0);
                     AutoDrive.setSpline((14.552041+1.988947)/2, yPosition, 0.0, 0.0, speed, 50);
                     ++autoState;
@@ -818,6 +819,32 @@ public class Autonomous {
                     ++autoState;
                 }
                 break;
+        }
+    }
+
+    public static void driveStraightAuto(){
+        ++cnt;
+        if (cnt < 50*17){
+            shootAuto(true);
+            RobotContainer.stopMovement();
+        }else{
+            shootAuto(false);
+            Double odox = RobotContainer.drivetrain.getState().Pose.getX();
+            if (alliance == 'B'){
+                if (odox < ((14.552041+1.988947)/2)-0.5){
+                    Driver_Controller.SwerveCommandXValue = 2.0;
+                    Driver_Controller.SwerveControlSet(true);
+                }else{
+                    RobotContainer.stopMovement();
+                }
+            }else{
+                if (odox > ((14.552041+1.988947)/2)+0.5){
+                    Driver_Controller.SwerveCommandXValue = -2.0;
+                    Driver_Controller.SwerveControlSet(true);
+                }else{
+                    RobotContainer.stopMovement();
+                }
+            }
         }
     }
 

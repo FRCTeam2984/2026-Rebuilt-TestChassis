@@ -65,7 +65,8 @@ public class RobotContainer {
         autoChooser.addOption("6. Outpost", "outpost");
         autoChooser.addOption("7. FULL FIELD intake", "intake, shoot");
         autoChooser.addOption("8. Depot", "depot");
-        autoChooser.addOption("9.stay, shoot", "stay, shoot");
+        autoChooser.addOption("9. stay, shoot", "stay, shoot");
+        autoChooser.addOption("10. wait 17, drive straight", "drive straight");
         
         waitCounter.setDefaultOption("go to neutral immediately", -1.0);
         waitCounter.addOption("1 second wait/shooting", 1.0);

@@ -181,15 +181,13 @@ public static void SwerveInputPeriodic(){
     }
     else{ //Controller Mode
         Double sliderMult = Driver_Controller.upperDriverSlider()*0.7+0.8;
+        // Double small = 0.1, big = 7/RobotContainer.MaxSpeed;
+        // Double sliderMult = ((1+Driver_Controller.upperDriverSlider())*(big-small)/2)+small;
         //SwerveEncoderPassthrough = Rotary_Controller.RotaryJoystick(m_Controller1);
         SwerveXPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[0]*sliderMult*((flipDrive())?-1.0:1.0);
         SwerveYPassthrough = -RobotContainer.betterJoystickCurve(m_Controller0.getLeftX()+0.04, m_Controller0.getLeftY()-0.07)[1]*sliderMult*((flipDrive())?-1.0:1.0);
-        // withinDeadBand = (buttonBrake() && !((Math.sqrt(SwerveXPassthrough*SwerveXPassthrough+SwerveYPassthrough*SwerveYPassthrough)<RobotContainer.deadbandV)
-        //     || (RobotContainer.rotaryCalc(false)* RobotContainer.MaxAngularRate * RobotContainer.TurnModifier < RobotContainer.angDeadband)));
         SwerveEncoderPassthrough = Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough));
         //System.out.println(Math.toDegrees(Math.atan2(SwerveXPassthrough, SwerveYPassthrough)));
-        //SwerveXPassthrough = -m_Controller0.getLeftY();
-        //SwerveYPassthrough = -m_Controller0.getLeftX();
     }
 }
 
