@@ -144,6 +144,7 @@ public class RobotContainer {
 
             rotaryJoystickInput = rotaryJoystickInput + rotaryOffset;
         }
+        if (Robot.isAuto) rotaryJoystickInput = Robot.curState.targetAngle;
         //System.out.println(rotaryJoystickInput);
         
         //Math to calculate the maximum turn speed

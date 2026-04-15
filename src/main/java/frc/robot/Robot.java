@@ -24,10 +24,10 @@ import frc.robot.subsystems.*;
 
 public class Robot extends TimedRobot {
   public static RobotState curState = new RobotState();
-  public static Boolean isTestChassis = false;
+  public static final Boolean isTestChassis = false, recordingRobot = true;
   public static char alliance = 'B';
   public static int scoringPos = 0;
-  public static boolean autoLastPressed = false;
+  public static boolean autoLastPressed = false, isAuto = false;
   private Command m_autonomousCommand;
   private Vision vision, vision2;
   public final RobotContainer m_robotContainer;
@@ -105,8 +105,10 @@ public class Robot extends TimedRobot {
   }
   String auto = "stay, shoot";
 
+  int autoCnt = 0;
   @Override
   public void autonomousInit() {
+    isAuto = true;
     RobotContainer.rotaryCalc(true);
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
     Driver_Controller.define_Controller();
@@ -115,6 +117,7 @@ public class Robot extends TimedRobot {
       FileReader fileReader = new FileReader(Constants.interpolationReadFile);
       bufferedReader = new BufferedReader(fileReader);
     }catch (Exception e){e.printStackTrace();}
+    autoCnt = 0;
   }
 
   @Override
@@ -126,7 +129,18 @@ public class Robot extends TimedRobot {
     //     curState.update(line);
     //   }
     // }catch (Exception e){e.printStackTrace();}
+    if (autoCnt < robotPoses.size()){
+      curState = robotPoses.get(autoCnt);
+    }
     System.out.println(curState.getString());
+    Driver_Controller.SwerveCommandXValue =
+      curState.xJoy -
+      curState.xPos + RobotContainer.drivetrain.getState().Pose.getX();
+    Driver_Controller.SwerveCommandYValue =
+      curState.yJoy -
+      curState.yPos + RobotContainer.drivetrain.getState().Pose.getY();
+    Driver_Controller.SwerveControlSet(true);
+    ++autoCnt;
     teleopPeriodic();
   }
 
@@ -193,10 +207,12 @@ public class Robot extends TimedRobot {
     }
   }
 
+  public static ArrayList<RobotState> robotPoses = new ArrayList<>();
   
   @Override
   public void teleopInit() {
-    try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
+    isAuto = false;
+    try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/recordedRobot.txt"));}catch (Exception e) {e.printStackTrace();}
     cnt = 0;
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
     System.out.println(DriverStation.getAlliance().toString());
@@ -207,6 +223,7 @@ public class Robot extends TimedRobot {
     RobotContainer.rotaryCalc(true);
     Driver_Controller.SwerveControlSet(false);
     Turret.curPower[0] = 0.0; Turret.curPower[1] = 0.0;
+    robotPoses = new ArrayList<>();
   }
 
   public static int cnt = 0;
@@ -225,6 +242,10 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+    if (recordingRobot && (!isAuto)){
+      curState = new RobotState();
+      robotPoses.add(curState);
+    }
     SignalLogger.stop();
     Double transportPower, intakePower, spinPower, spindexPow;
     Turret.calcDist();
@@ -340,10 +361,12 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopExit() {
     try{
-      int len = speedData.size();
+      int len = robotPoses.size();
       for (int i = 0; i < len; ++i){
-        fileWriter.write((cnt++)+", "+speedData.get(i).getFirst()+", "+speedData.get(i).getSecond());
-        fileWriter.newLine();
+        String toWrite = robotPoses.get(i).getString();
+        System.out.println(toWrite);
+        // fileWriter.write(toWrite);
+        // fileWriter.newLine();
       }
     }catch(Exception e){
       System.out.println("fail");

@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.Robot;
 import frc.robot.RobotContainer;
 
 
@@ -67,12 +68,14 @@ public static Boolean buttonBrake(){
     return m_Controller1.getRawButton(1);
 }
 public static Boolean buttonLimitShuttle(){
+    if (Robot.isAuto) return Robot.curState.buttonLimitShuttle;
     return m_Controller1.getRawButton(2);}
 public static Boolean flipDrive(){
     return m_Controller1.getRawButton(3);}
 public static Boolean visionSwitch(){
     return m_Controller1.getRawButton(4);}
 public static Boolean buttonRestrictTransport(){
+    if (Robot.isAuto) return Robot.curState.buttonRestrictTransport;
     return m_Controller1.getRawButton(5);}
 
 public static Double upperDriverSlider(){
@@ -89,12 +92,16 @@ public static Boolean switch3(){
 public static Boolean switch4(){
     return !m_Controller3.getRawButton(10);}
 public static Boolean manualSwitch(){
+    if (Robot.isAuto) return Robot.curState.manualSwitch;
     return switch1();}
 public static Boolean runShooterSwitch(){
+    if (Robot.isAuto) return Robot.curState.runShooterSwitch;
     return switch2();}
 public static Boolean transportSwitch(){
+    if (Robot.isAuto) return Robot.curState.transportSwitch;
     return switch3();}
 public static Boolean intakeSwitch(){
+    if (Robot.isAuto) return Robot.curState.intakeSwitch;
     return switch4();}
 
 public static Double cowlSlider(){
@@ -110,17 +117,23 @@ public static Double offsetSlider(){
 public static Boolean useOffsets(){
     return m_Controller3.getRawButton(1);}
 public static Boolean pauseTurret(){
+    if (Robot.isAuto) return Robot.curState.pauseTurret;
     return  m_Controller3.getRawButton(2);}
 public static Boolean buttonShooterReverse(){
+    if (Robot.isAuto) return Robot.curState.buttonShooterReverse;
     return m_Controller3.getRawButton(3);}
 public static Boolean buttonIntakeReverse(){
+    if (Robot.isAuto) return Robot.curState.buttonIntakeReverse;
     return m_Controller3.getRawButton(4);}
 public static Boolean buttonTransportReverse(){
+    if (Robot.isAuto) return Robot.curState.buttonTransportReverse;
     return m_Controller3.getRawButton(5);}
 public static Boolean buttonResetTurret(){
+    if (Robot.isAuto) return Robot.curState.buttonResetTurret;
     return m_Controller3.getRawButton(6);}
 
 public static Boolean buttonEBrake(){
+    if (Robot.isAuto) return Robot.curState.buttonEBrake;
     return (m_Controller2.getRawButton(1) || m_Controller1.getRawButton(6));}
 
 public static Boolean withinDeadBand(){
@@ -135,6 +148,7 @@ public static Double shooterOffsetSlider(){
     return 20*m_Controller3.getRawAxis(3);}
 
 public static int kitchenStove(){
+    if (Robot.isAuto) return Robot.curState.kitchenStove;
     int num = (m_Controller2.getRawButton(11)?1:0)+(m_Controller2.getRawButton(10)?2:0)+(m_Controller2.getRawButton(9)?3:0)+(m_Controller2.getRawButton(12)?6:0);
     num = 11-((num+6)%12);
     return ((num>7)?7:num);
