@@ -4,7 +4,9 @@
 
 package frc.robot;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
 
@@ -15,20 +17,24 @@ import com.ctre.phoenix6.SignalLogger;
 
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.*;
 
 public class Robot extends TimedRobot {
-  public static Boolean isTestChassis = false;
+  public static ControlState curState = new ControlState();
+  public static Boolean recordedFlipped = false;
+  public static final Boolean isTestChassis = false, isRecording = true, useLocalRecordedOnFail = false;
   public static char alliance = 'B';
   public static int scoringPos = 0;
-  public static boolean autoLastPressed = false;
+  public static boolean autoLastPressed = false, isAuto = false;
   private Command m_autonomousCommand;
   private Vision vision, vision2;
   public final RobotContainer m_robotContainer;
   public static BufferedWriter fileWriter;
+  public static BufferedReader fileReader;
 
   public Robot() {
     m_robotContainer = new RobotContainer();
@@ -99,10 +105,14 @@ public class Robot extends TimedRobot {
       }
     }
   }
-  String auto = "stay, shoot";
+  public static String auto = "stay, shoot";
+  public static int autoLength;
+  public static Boolean successfulRead = false, endedAuto = false;
   
+  public static int autoCnt = 0;
   @Override
   public void autonomousInit() {
+    isAuto = true;
     try {fileWriter = new BufferedWriter(new FileWriter("/tmp/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
     RobotContainer.rotaryCalc(true);
     Autonomous.reset();
@@ -119,6 +129,33 @@ public class Robot extends TimedRobot {
     Autonomous.speed = RobotContainer.speedChooser.getSelected();
     Autonomous.shootPosition = RobotContainer.endPositionChooser.getSelected();
     Autonomous.reset();
+    autoCnt = 0;
+    
+    switch(auto){
+      case "shuttle":
+      case "outpost":
+      case "half-intake":
+      case "half+return":
+      case "intake, shoot":
+      case "depot":
+      case "hub intake":
+      case "half hub":
+      case "half hub return":
+      case "drive straight":
+      case "stay, shoot":
+        break;
+      default:
+        try{
+          fileReader = new BufferedReader(new FileReader("/home/admin/"+auto+".txt"));
+          autoLength = 1000;
+          successfulRead = true;
+        }catch (Exception e){
+          e.printStackTrace();
+          autoLength = robotData.size();
+          successfulRead = false;
+        }
+    }
+    endedAuto = false;
   }
 
   @Override
@@ -169,10 +206,43 @@ public class Robot extends TimedRobot {
         Driver_Controller.SwerveCommandXValue = 0.0;
         Driver_Controller.SwerveCommandYValue = 0.0;
         Driver_Controller.SwerveControlSet(true);
+      case "recorded":
+        if (((successfulRead || useLocalRecordedOnFail) == false) || (autoCnt >= autoLength) || endedAuto){
+          RobotContainer.stopMovement();
+          return;
+        }
+        try{
+          if (successfulRead){
+            String line = null;
+            if ((line = fileReader.readLine()) == null){
+              endedAuto = true;
+              return;
+            }
+            curState.update(line);
+          }else if (useLocalRecordedOnFail && (!successfulRead)){
+            curState = robotData.get(autoCnt);
+          }
+        }catch(Exception e){e.printStackTrace();}
+        recordedFlipped = ((Robot.alliance == 'R') ^ Robot.curState.isRed);
+        
+        Driver_Controller.SwerveCommandXValue =
+          curState.xJoy +
+          ((recordedFlipped?16.540734-curState.xPos:curState.xPos) - RobotContainer.drivetrain.getState().Pose.getX())
+          *((Robot.alliance == 'R')?-1.0:1.0);
+        Driver_Controller.SwerveCommandXValue = Math.max(-0.5, Math.min(0.5, Driver_Controller.SwerveCommandXValue));
+        Driver_Controller.SwerveCommandYValue =
+          curState.yJoy +
+          ((recordedFlipped?8.069326-curState.yPos:curState.yPos) - RobotContainer.drivetrain.getState().Pose.getY())
+          *((Robot.alliance == 'R')?-1.0:1.0);
+        Driver_Controller.SwerveCommandYValue = Math.max(-0.5, Math.min(0.5, Driver_Controller.SwerveCommandYValue));
+        Driver_Controller.SwerveControlSet(true);
+        teleopPeriodic();
+        break;
       default:
         Autonomous.shootAuto();
         break;
     }
+    autoCnt++;
   }
 
   @Override
@@ -241,7 +311,9 @@ public class Robot extends TimedRobot {
   
   @Override
   public void teleopInit() {
-    try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/errorData.txt"));}catch (Exception e) {e.printStackTrace();}
+    robotData = new ArrayList<>();
+    isAuto = false;
+    try {fileWriter = new BufferedWriter(new FileWriter("/home/admin/recorded.txt"));}catch (Exception e) {e.printStackTrace();}
     cnt = 0;
     AutoDrive.alliance = DriverStation.getAlliance().toString().charAt(9);
     System.out.println(DriverStation.getAlliance().toString());
@@ -266,7 +338,7 @@ public class Robot extends TimedRobot {
   static Boolean saveLastPressed = false, recentClose = false, recentPressed = false, startedOutRange = false;
   public static Double prevDesired = 0.0;
 
-  public static ArrayList<Pair<Double, Double>> speedData = new ArrayList<>();
+  public static ArrayList<ControlState> robotData = new ArrayList<>(0);
 
   @Override
   public void teleopPeriodic() {
@@ -354,8 +426,8 @@ public class Robot extends TimedRobot {
     if (curIndexCowl == 0){
       System.out.printf("dist= %.3f, cowl= %.3f, shooter= %.3f, offset= %.3f, angle= %.3f, speed= %.3f\n", Turret.distance, Turret.cowlAngle, Turret.desiredSpeed, Turret.interpolatedTurretOffset, Turret.targetAngleDeg, Turret.avgSpeed);
     }
-    if (Turret.avgSpeed != 0.0){
-      speedData.add(new Pair<Double, Double> (Turret.desiredSpeed,Turret.avgSpeed));
+    if (isRecording && (isAuto == false)){
+      robotData.add(new ControlState());
     }
     // Turret.servo1.set((1.0+Driver_Controller.m_Controller3.getRawAxis(4))/2.0);
     // Turret.servo2.set((1.0+Driver_Controller.m_Controller3.getRawAxis(3))/2.0);
@@ -385,9 +457,9 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopExit() {
     try{
-      int len = speedData.size();
+      int len = robotData.size();
       for (int i = 0; i < len; ++i){
-        fileWriter.write((cnt++)+", "+speedData.get(i).getFirst()+", "+speedData.get(i).getSecond());
+        fileWriter.write(robotData.get(i).getString());
         fileWriter.newLine();
       }
     }catch(Exception e){

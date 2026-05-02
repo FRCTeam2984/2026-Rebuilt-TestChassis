@@ -38,7 +38,7 @@ public class RobotContainer {
     public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     public static double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
     public static double TurnModifier = 0.2;
-    private static double rotaryOffset = 0;
+    public static double rotaryOffset = 0;
     /* Setting up bindings for necessary control of the swerve drive platform */
     public static Double deadbandV = MaxSpeed * 0.1/5, angDeadband = MaxAngularRate * 0.1;
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -60,13 +60,14 @@ public class RobotContainer {
         autoChooser.addOption("1. HALF Hub", "half hub");
         autoChooser.addOption("2. HALF Hub RETURN", "half hub return");
         autoChooser.addOption("3. FULL Hub", "hub intake");
-        autoChooser.setDefaultOption("4. HALF and RETURN", "half+return");
+        autoChooser.addOption("4. HALF and RETURN", "half+return");
         autoChooser.addOption("5. HALF intake", "half-intake");
         autoChooser.addOption("6. Outpost", "outpost");
         autoChooser.addOption("7. FULL FIELD intake", "intake, shoot");
         autoChooser.addOption("8. Depot", "depot");
         autoChooser.addOption("9. stay, shoot", "stay, shoot");
         autoChooser.addOption("10. wait 17, drive straight", "drive straight");
+        autoChooser.setDefaultOption("recorded", "recorded");
         
         waitCounter.setDefaultOption("go to neutral immediately", -1.0);
         waitCounter.addOption("1 second wait/shooting", 1.0);
@@ -144,7 +145,8 @@ public class RobotContainer {
 
             rotaryJoystickInput = rotaryJoystickInput + rotaryOffset;
         }
-        //System.out.println(rotaryJoystickInput);
+        if (Robot.isAuto && Robot.auto == "recorded") rotaryJoystickInput = Robot.curState.targetAngle;
+        if (Robot.recordedFlipped) rotaryJoystickInput += 180;
         
         //Math to calculate the maximum turn speed
         double diff = pigeonYaw - (rotaryJoystickInput);
@@ -161,6 +163,10 @@ public class RobotContainer {
         //Limit the power to a max of 7
         final Double maxPow = 80.0;
         powerCurved = Math.min(maxPow, Math.max(-maxPow, powerCurved));          
+
+        //     | old math skill issue lol
+        //    \|/  
+        
         // if (powerCurved < 8 && powerCurved > 2){
         //     powerCurved = 8;// * ((powerCurved + 3)/ 10);
         // }
