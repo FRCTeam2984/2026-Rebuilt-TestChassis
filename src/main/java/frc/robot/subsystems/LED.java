@@ -22,11 +22,11 @@ public class LED {
     public static char curRange = '0';
 
     public static void setPattern(char newPattern){
-        if (newPattern >= 'A' && newPattern <= 'Z'){ // if is a capital letter
+        /*if (newPattern >= 'A' && newPattern <= 'Z'){ // if is a capital letter
             newPattern += 'a'-'A'; // change to lowercase
-        }
-        if (newPattern >= 'a' && newPattern <= 'z'){ // if is a latter
-            if (newPattern == curPattern){ // don't send the same pattern multiple times
+        }*/
+        //if (newPattern >= 'a' && newPattern <= 'z'){ // if is a latter
+            if (newPattern == curPattern){ // KEVIN this function is only called by the one below it. it is point;ess to sanitize input in this way
                 return;
             }
             curPattern = newPattern;
@@ -38,7 +38,7 @@ public class LED {
             }catch(Exception e){
                 System.out.println("UH OH leds failed");
             }
-        }
+        //}
     }
 
     public static void setPattern(String newPattern){
