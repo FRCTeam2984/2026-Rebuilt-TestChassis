@@ -62,28 +62,15 @@ public class Turret {
             //    interplatedTurretOffset = +/- offset to be added to turretAngle later
             //    distance = turret to hub after adding robot speed
             //    modTurretOff = error in turret angle
+            // Lead / shoot-on-move math lives in ShootOnMove (tunable flight time, latency, lead gain).
         try{
         // grab odometry values
-        Double fieldRobotAngleDeg = RobotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
-        Double fieldRobotAngleRad = Math.toRadians(fieldRobotAngleDeg);
+        Double fieldRobotAngleRad =
+            RobotContainer.drivetrain.getState().Pose.getRotation().getRadians();
         Double robotVeloX = RobotContainer.drivetrain.getState().Speeds.vxMetersPerSecond;
         Double robotVeloY = RobotContainer.drivetrain.getState().Speeds.vyMetersPerSecond;
-        Double fieldDriveVeloAngle = Math.atan2(robotVeloY, robotVeloX)+
-            Math.toRadians(fieldRobotAngleDeg); // TODO, fixme: test for  both red and blue
-        Double magnitude = Math.sqrt(Math.pow(robotVeloX, 2)+Math.pow(robotVeloY, 2));
-        final Double flightTime = 1.2; // 1.2 second flight time of the fuel
-        Double fieldVeloX = magnitude*Math.cos(fieldDriveVeloAngle)*flightTime;
-        Double fieldVeloY = magnitude*Math.sin(fieldDriveVeloAngle)*flightTime;
-        //System.out.printf("xVelo = %.3f, yVelo = %.3f\n", xVelo, yVelo);
-
-        Double projectedOdoY = RobotContainer.drivetrain.getState().Pose.getY() + fieldVeloY;
-        Double projectedOdoX = RobotContainer.drivetrain.getState().Pose.getX() + fieldVeloX;
-        
-        final Double turretLagTime = 0.25; // turret lags behind by x seconds: TODO, fixme: this should be an interpolation table!!!
-        Double projectedOdoA = Math.toRadians(((
-            fieldRobotAngleDeg+
-            RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble()*turretLagTime+ // degreesPerSec * lag(s) = pre-aiming
-            360*132300 + 180)%360));
+        Double yawRateDegPerSec =
+            RobotContainer.drivetrain.getPigeon2().getAngularVelocityZWorld().getValueAsDouble();
 
         Double destX, destY; // find where our destination is
         if (Robot.alliance == 'B'){// if alliance is blue
@@ -103,17 +90,33 @@ public class Turret {
                 destY = TargetY[((RobotContainer.drivetrain.getState().Pose.getY() > TargetY[2])?1:0)]; // make it the lower/bigger y value based on if cur y value is above or below hub value
             }
         }
-        
+
+        ShootOnMove.Result lead = ShootOnMove.compute(
+            RobotContainer.drivetrain.getState().Pose.getX(),
+            RobotContainer.drivetrain.getState().Pose.getY(),
+            fieldRobotAngleRad,
+            robotVeloX,
+            robotVeloY,
+            yawRateDegPerSec,
+            destX,
+            destY);
+
+        Double projectedOdoX = lead.leadRobotX;
+        Double projectedOdoY = lead.leadRobotY;
+        // Predicted yaw for turret frame (was hard-coded 0.25s lag).
+        Double projectedOdoA = lead.predictedYawRad;
+
         Double turretAngleDeg = (turretEncoder.getPosition()-turret_zero)*360/spinRatio-5;
         Double turrTargetX, turrTargetY; // variables that represent position of the TURRET relative to the target location
         //turretAngle += Driver_Controller.offsetSlider();
 
-        turrTargetX = projectedOdoX + turretOffX*Math.cos(fieldRobotAngleRad) - turretOffY*Math.sin(fieldRobotAngleRad) - destX;
-        turrTargetY = projectedOdoY + turretOffX*Math.sin(fieldRobotAngleRad) + turretOffY*Math.cos(fieldRobotAngleRad) - destY;
+        // Place turret offset in the *predicted* chassis frame so rotation while the
+        // ball is in the air / turret is catching up does not skew the lead.
+        turrTargetX = projectedOdoX + turretOffX*Math.cos(projectedOdoA) - turretOffY*Math.sin(projectedOdoA) - destX;
+        turrTargetY = projectedOdoY + turretOffX*Math.sin(projectedOdoA) + turretOffY*Math.cos(projectedOdoA) - destY;
         // calculate above by odometry value and then trigonometric ratios using the robot angle to find turret pos on the field, then subtract destination values
 
         distance = Math.sqrt(Math.pow(turrTargetX , 2) + Math.pow(turrTargetY, 2)); // pythagorean theorum
-        Double prevAngle = targetAngleDeg;
         targetAngleDeg = (15380*360-Math.toDegrees(Math.atan2(turrTargetX, turrTargetY)+projectedOdoA)+((Driver_Controller.flipDrive())?180.0:0.0)-180)%360-180;
         Double turretErrorDeg = targetAngleDeg - turretAngleDeg;
 
@@ -194,10 +197,9 @@ public class Turret {
         cowlAngle = Math.max(.24, Math.min(.807, cowlAngle+0.04));
         desiredSpeed = Math.max(10.0, Math.min(30.0, desiredSpeed));
 
-        Double errorFix = 5*(prevAngle-targetAngleDeg);
-        if (errorFix > 5*180) errorFix -= 5*360;
-        if (errorFix < -5*180) errorFix += 5*360;
-        modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset - errorFix + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
+        // Prefer model-based aim-rate feedforward (ShootOnMove) over the old 5× discrete
+        // delta on targetAngleDeg — that term fought strafe lead and caused left/right lag.
+        modTurretOff = 180-(turretErrorDeg + interpolatedTurretOffset + 180 + 360*Math.pow(10, 5))%360;//in the range of -180 to 180 degrees
         //System.out.println(modTurretOff);
         }catch (Exception e){}
     }
@@ -206,8 +208,12 @@ public class Turret {
         Double maxPowDist = 60.0;
         Double power = modTurretOff/maxPowDist*maxPower;
 
-        if (Math.abs(modTurretOff) < maxError){ // if really close to perfect, then no power needed
-            return 0.0;
+        // Track a moving aim setpoint while strafing (model-based, from ShootOnMove).
+        power += ShootOnMove.turretAimFeedforwardPower(maxPower);
+
+        if (Math.abs(modTurretOff) < maxError
+                && Math.abs(ShootOnMove.lastAimRateDegPerSec) < 15.0){ // settled and setpoint not slewing hard
+            return -ShootOnMove.turretAimFeedforwardPower(maxPower)/2.0;
         }
         
         Double minSpeed = 600.0;//TODO FIXME rpm
